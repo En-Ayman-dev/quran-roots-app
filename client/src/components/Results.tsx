@@ -1,0 +1,496 @@
+import React from 'react';
+import { useQuran } from '@/contexts/QuranContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { AlertCircle, BookOpen, ChevronDown, ChevronUp, Search, X, Copy, Check, Download, FileText } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+
+// --- Utility: Remove Arabic Diacritics (Tashkeel) ---
+const normalizeArabic = (text: string) => {
+  if (!text) return "";
+  // Removes: Fathatan, Dammatan, Kasratan, Fatha, Damma, Kasra, Shadda, Sukun, Superscript Aleph, Tatweel
+  return text.replace(/[\u064B-\u065F\u0670\u0640]/g, "");
+};
+
+// --- Animated Verse Card Component ---
+const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string) => void }> = ({ ayah, index, onRootClick }) => {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, delay: index * 0.05 }}
+      className={`group overflow-hidden rounded-2xl border transition-all duration-500 relative bg-card ${isExpanded
+        ? 'shadow-2xl shadow-primary/10 border-primary/20 ring-1 ring-primary/5'
+        : 'shadow-sm hover:shadow-md border-border/50 hover:border-primary/20'
+        }`}
+    >
+      {/* Decorative side accent */}
+      <div className={`absolute right-0 top-0 bottom-0 w-1 transition-all duration-500 ${isExpanded ? 'bg-primary' : 'bg-primary/0 group-hover:bg-primary/50'}`} />
+
+      {/* CLICKABLE HEADER AREA */}
+      <div
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="cursor-pointer p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 relative z-10"
+      >
+        <div className="flex items-center gap-4 flex-1">
+          {/* Number Badge */}
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg font-bold transition-colors font-serif ${isExpanded ? 'bg-primary text-primary-foreground shadow-lg scale-110' : 'bg-secondary text-primary group-hover:bg-primary/10'
+            }`}>
+            {index + 1}
+          </div>
+
+          <div className="flex flex-col">
+            <div className="flex items-baseline gap-2">
+              <h3 className="text-xl font-bold text-foreground font-serif">{ayah.surahName}</h3>
+              <span className="text-xs text-muted-foreground font-medium px-2 py-0.5 bg-background rounded border border-border">آية {ayah.ayahNo}</span>
+            </div>
+
+            {/* Metadata Preview (Always visible) */}
+            <div className="flex gap-3 text-xs text-muted-foreground mt-1">
+              <span>الجزء {ayah.juz}</span>
+              <span className="w-px h-3 bg-border self-center" />
+              <span>صفحة {ayah.page}</span>
+              {/* Token Indicators (Collapsed only) */}
+              {!isExpanded && ayah.tokens.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="mr-2 flex gap-1"
+                >
+                  <span className="bg-primary/10 text-primary px-1.5 rounded-sm">
+                    {ayah.tokens.length} تطابق
+                  </span>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Toggle Icon & Copy Button */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              navigator.clipboard.writeText(`${ayah.text} \n[${ayah.surahName}: ${ayah.ayahNo}]`);
+              // Minimal feedback logic could be added here, currently relying on simple action
+              const btn = e.currentTarget;
+              const originalContent = btn.innerHTML;
+              btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-green-500"><path d="M20 6 9 17l-5-5"/></svg>';
+              setTimeout(() => { btn.innerHTML = originalContent; }, 2000);
+            }}
+            className="p-2 rounded-full hover:bg-secondary/80 text-muted-foreground transition-colors z-20"
+            title="نسخ الآية"
+          >
+            <Copy className="w-4 h-4" />
+          </button>
+          <div className={`p-2 rounded-full transition-colors ${isExpanded ? 'bg-primary/10 text-primary' : 'bg-transparent text-muted-foreground group-hover:bg-muted'}`}>
+            {isExpanded ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+          </div>
+        </div>
+      </div>
+
+      {/* EXPANDABLE CONTENT */}
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+          >
+            <div className="px-6 md:px-10 pb-8 pt-2 border-t border-border/40 bg-gradient-to-b from-background to-muted/10">
+
+              {/* Quran Text - Preserved & Highlighted */}
+              <div className="relative mb-8 mt-4">
+                <span className="absolute -top-4 -right-4 text-6xl text-primary/5 font-serif select-none">“</span>
+                <p className="text-right text-2xl md:text-4xl leading-[2.4] md:leading-[2.6] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
+                  {ayah.text}
+                </p>
+              </div>
+
+              {/* Tokens and Roots Analysis */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="bg-background/80 rounded-2xl p-6 border border-border/50 shadow-sm"
+              >
+                <div className="flex flex-wrap gap-x-8 gap-y-6">
+
+                  {/* Root Matches */}
+                  {ayah.tokens.length > 0 && (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm font-medium text-primary/80">
+                        <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                        الكلمات المطابقة
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {ayah.tokens.map((token: any, idx: number) => (
+                          <div key={idx} className="flex flex-col items-center bg-primary/5 px-2 py-1.5 rounded-lg border border-primary/10 hover:bg-primary/10 transition-colors cursor-help relative min-w-[40px]">
+                            <span className="text-sm font-bold text-primary mb-0.5 font-quran leading-tight">{token.token_uthmani || token.token}</span>
+                            <span className="text-[9px] uppercase tracking-wider text-muted-foreground/80 bg-background/50 px-1.5 rounded-full">{token.root}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Related Roots */}
+                  {ayah.otherRoots.length > 0 && (
+                    <div className="space-y-3 flex-1 min-w-[200px]">
+                      <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50" />
+                        جذور أخرى في الآية
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {ayah.otherRoots.filter((r: string) => normalizeArabic(r).length >= 3).map((root: string, idx: number) => (
+                          <Badge
+                            key={idx}
+                            variant="outline"
+                            onClick={(e) => { e.stopPropagation(); onRootClick(root); }}
+                            className="font-normal text-muted-foreground bg-muted/20 hover:bg-primary hover:text-primary-foreground hover:border-primary cursor-pointer transition-all duration-300"
+                          >
+                            {root}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+export const Results: React.FC = () => {
+  const { searchResults, loading, error, searchByRoot } = useQuran();
+
+  // State for pagination and filtering
+  const [visibleCount, setVisibleCount] = React.useState(10);
+  const [selectedSurah, setSelectedSurah] = React.useState<string>('all');
+  const [selectedJuz, setSelectedJuz] = React.useState<string>('all');
+  const [subSearch, setSubSearch] = React.useState<string>(''); // New Sub-search state
+  const [showScrollTop, setShowScrollTop] = React.useState(false);
+
+  // Scroll detection
+  React.useEffect(() => {
+    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Reset pagination when search results change
+  React.useEffect(() => {
+    setVisibleCount(10);
+    setSelectedSurah('all');
+    setSelectedJuz('all');
+    setSubSearch('');
+  }, [searchResults]);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleRootClick = (root: string) => {
+    setSubSearch(root);
+    setVisibleCount(10);
+    scrollToTop();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center py-32 animate-in fade-in zoom-in duration-700">
+        <div className="relative">
+          <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
+          <div className="relative bg-card/50 backdrop-blur-xl p-8 rounded-full border border-primary/10 shadow-2xl">
+            <BookOpen className="w-16 h-16 text-primary animate-bounce stroke-[1.5]" />
+          </div>
+        </div>
+        <p className="mt-8 text-xl font- Amiri text-foreground/80 animate-pulse">...جاري استحضار الآيات الكريمة</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-xl mx-auto mt-12 animate-in slide-in-from-bottom-8 duration-500">
+        <Card className="border-destructive/30 bg-destructive/5 shadow-2xl overflow-hidden relative">
+          <div className="absolute top-0 right-0 w-2 h-full bg-destructive/60" />
+          <CardContent className="pt-8 pb-8 px-8">
+            <div className="flex gap-6 items-start">
+              <div className="p-4 bg-background rounded-2xl shadow-sm border border-destructive/10">
+                <AlertCircle className="w-8 h-8 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-bold text-xl text-destructive mb-2">عذراً، حدث خطأ</h3>
+                <p className="text-muted-foreground leading-relaxed">{error}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!searchResults) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center px-4 animate-in fade-in duration-1000">
+        <div className="bg-gradient-to-b from-primary/5 to-transparent p-12 rounded-[3rem] border border-primary/5 mb-8">
+          <BookOpen className="w-20 h-20 text-primary/30" />
+        </div>
+        <h3 className="text-3xl font-bold text-foreground/80 mb-4 font-serif">مرحباً بك في باحث الجذور</h3>
+        <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed">
+          اكتب جذر الكلمة (مثلاً: <span className="text-primary font-bold">"رحم"</span>) لاكتشاف الكنوز في كتاب الله
+        </p>
+      </div>
+    );
+  }
+
+  // --- Filtering Logic ---
+  const uniqueSurahs = Array.from(new Set(searchResults.ayahs.map(a => a.surahName)));
+  const uniqueJuzs = Array.from(new Set(searchResults.ayahs.map(a => a.juz))).sort((a, b) => a - b);
+
+  const filteredAyahs = searchResults.ayahs.filter(ayah => {
+    const matchSurah = selectedSurah === 'all' || ayah.surahName === selectedSurah;
+    const matchJuz = selectedJuz === 'all' || ayah.juz === parseInt(selectedJuz);
+
+    // Smart Sub-search Logic
+    let matchSub = true;
+    if (subSearch.trim()) {
+      const term = normalizeArabic(subSearch.trim());
+
+      const normalizedText = normalizeArabic(ayah.text);
+      const normalizedSurah = normalizeArabic(ayah.surahName);
+
+      matchSub = normalizedText.includes(term) ||
+        normalizedSurah.includes(term) ||
+        ayah.tokens.some((t: any) => normalizeArabic(t.root).includes(term) || normalizeArabic(t.token).includes(term)) ||
+        ayah.otherRoots.some((r: string) => normalizeArabic(r).includes(term));
+    }
+
+    return matchSurah && matchJuz && matchSub;
+  });
+
+  const visibleAyahs = filteredAyahs.slice(0, visibleCount);
+  const hasMore = visibleCount < filteredAyahs.length;
+
+  return (
+    <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-700 min-h-[60vh]">
+
+      {/* Sticky Premium Header - Transparent & Centered */}
+      <div className="sticky top-[85px] z-30 transition-all duration-300">
+        {/* Container for centering */}
+        <div className="container mx-auto max-w-4xl">
+          <div className="bg-background/60 backdrop-blur-xl border border-primary/5 shadow-xl shadow-primary/5 rounded-2xl p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-4 transition-all hover:bg-background/80">
+
+            {/* Title & Count (Compact) */}
+            <div className="flex-shrink-0 flex items-center gap-3">
+              <div className="flex flex-col items-start leading-none">
+                <span className="text-xs text-muted-foreground font-medium">نتائج الجذر</span>
+                <span className="text-lg font-bold text-primary font-serif">"{searchResults.root}"</span>
+              </div>
+              <div className="h-8 w-px bg-border/50 mx-1"></div>
+              <span className="px-2.5 py-0.5 bg-primary/10 text-primary text-xs font-bold rounded-full border border-primary/10">
+                {Number(filteredAyahs.length).toLocaleString('ar-EG')} آية
+              </span>
+            </div>
+
+            {/* Smart Filters & Sub-Search (Compact) */}
+            <div className="flex flex-1 w-full md:w-auto items-center gap-2 justify-end">
+
+              {/* SUB-SEARCH INPUT */}
+              <div className="relative flex-1 min-w-[140px] max-w-[220px] group transition-all focus-within:max-w-[280px]">
+                <input
+                  type="text"
+                  placeholder="ابحث ضمن النتائج (بدون تشكيل)..."
+                  value={subSearch}
+                  onChange={(e) => { setSubSearch(e.target.value); setVisibleCount(10); }}
+                  className="w-full bg-secondary/30 hover:bg-secondary/50 focus:bg-background border border-transparent hover:border-primary/20 focus:border-primary/50 text-right px-4 py-2.5 pl-10 rounded-xl outline-none focus:ring-2 focus:ring-primary/10 transition-all text-sm font-medium"
+                />
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  {subSearch && (
+                    <button
+                      onClick={() => setSubSearch('')}
+                      className="text-muted-foreground hover:text-destructive transition-colors p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  )}
+                </div>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground/50">
+                  <Search className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* Surah Filter */}
+              <div className="relative group">
+                <select
+                  className="w-full md:w-40 appearance-none bg-secondary/50 hover:bg-secondary cursor-pointer border-transparent hover:border-primary/20 rounded-xl px-9 py-2.5 text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-primary/20 text-right dir-rtl"
+                  value={selectedSurah}
+                  onChange={(e) => { setSelectedSurah(e.target.value); setVisibleCount(10); }}
+                  dir="rtl"
+                >
+                  <option value="all">كل السور 🕌</option>
+                  {uniqueSurahs.map(s => <option key={s} value={s}>سورة {s}</option>)}
+                </select>
+              </div>
+
+              {/* Juz Filter */}
+              <div className="relative group">
+                <select
+                  className="w-full md:w-32 appearance-none bg-secondary/50 hover:bg-secondary cursor-pointer border-transparent hover:border-primary/20 rounded-xl px-8 py-2.5 text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-primary/20 text-right dir-rtl"
+                  value={selectedJuz}
+                  onChange={(e) => { setSelectedJuz(e.target.value); setVisibleCount(10); }}
+                  dir="rtl"
+                >
+                  <option value="all">الأجزاء 📖</option>
+                  {uniqueJuzs.map(j => <option key={j} value={j}>الجزء {j}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Active Filters Display */}
+          {(selectedSurah !== 'all' || selectedJuz !== 'all' || subSearch) && (
+            <div className="flex flex-wrap gap-2 mt-3 animate-in fade-in slide-in-from-top-2">
+              {selectedSurah !== 'all' && (
+                <button onClick={() => setSelectedSurah('all')} className="flex items-center gap-2 px-3 py-1 bg-primary text-primary-foreground text-xs rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                  سورة {selectedSurah} <span className="opacity-70">✕</span>
+                </button>
+              )}
+              {selectedJuz !== 'all' && (
+                <button onClick={() => setSelectedJuz('all')} className="flex items-center gap-2 px-3 py-1 bg-primary text-primary-foreground text-xs rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
+                  الجزء {selectedJuz} <span className="opacity-70">✕</span>
+                </button>
+              )}
+              {subSearch && (
+                <button onClick={() => setSubSearch('')} className="flex items-center gap-2 px-3 py-1 bg-secondary text-secondary-foreground text-xs rounded-full hover:bg-secondary/80 transition-colors border border-primary/20">
+                  بحث: "{subSearch}" <span className="opacity-70">✕</span>
+                </button>
+              )}
+              <button onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch('') }} className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2">
+                مسح الكل
+              </button>
+            </div>
+          )}
+
+        </div>
+      </div>
+
+      {/* Results List */}
+      <div className="grid gap-4">
+        {visibleAyahs.length === 0 ? (
+          <Card className="border-dashed py-16 text-center bg-muted/20">
+            <div className="text-muted-foreground">لا توجد نتائج تطابق الفلاتر المختارة</div>
+            <button
+              onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch(''); }}
+              className="mt-4 text-primary font-medium hover:underline"
+            >
+              إعادة ضبط القلاتر
+            </button>
+          </Card>
+        ) : (
+          <AnimatePresence>
+            {visibleAyahs.map((ayah, index) => (
+              <VerseCard
+                key={ayah.id}
+                ayah={ayah}
+                index={index}
+                onRootClick={handleRootClick}
+              />
+            ))}
+          </AnimatePresence>
+        )}
+      </div>
+
+      {/* Pagination Controls */}
+      {(hasMore || visibleCount > 10) && (
+        <div className="flex flex-col items-center gap-2 py-8 animate-in slide-in-from-bottom-4 fade-in">
+          <div className="text-xs text-muted-foreground mb-2 font-medium">
+            عرض {Math.min(visibleCount, filteredAyahs.length)} من أصل {filteredAyahs.length}
+          </div>
+          <div className="bg-background/80 backdrop-blur-md p-1.5 rounded-full shadow-2xl border border-border flex gap-2 ring-1 ring-border/50">
+            {hasMore && (
+              <button
+                onClick={() => setVisibleCount(prev => prev + 10)}
+                className="px-8 py-3 bg-primary text-primary-foreground rounded-full font-bold hover:bg-primary/90 hover:scale-105 active:scale-95 transition-all shadow-lg hover:shadow-primary/25 flex items-center gap-2"
+              >
+                <span>عرض المزيد</span>
+                <span className="bg-white/20 rounded-full w-5 h-5 flex items-center justify-center text-xs">+10</span>
+              </button>
+            )}
+
+            {visibleCount > 10 && (
+              <button
+                onClick={() => { setVisibleCount(10); scrollToTop(); }}
+                className="px-6 py-3 hover:bg-secondary text-foreground rounded-full font-medium transition-all flex items-center gap-2"
+              >
+                عرض أقل
+              </button>
+            )}
+          </div>
+
+          {/* Action Buttons: Copy All & Download */}
+          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border/40 w-full animate-in fade-in slide-in-from-top-1">
+            <button
+              onClick={() => {
+                const text = filteredAyahs.map(a => `${a.text} \n[${a.surahName}: ${a.ayahNo}]`).join('\n\n');
+                navigator.clipboard.writeText(text);
+                // Simple feedback alert or toast can be used. For now, we trust the user sees the action.
+                alert('تم نسخ جميع النتائج المصفاة إلى الحافظة');
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+            >
+              <Copy className="w-3.5 h-3.5" />
+              نسخ النتائج
+            </button>
+
+            <button
+              onClick={() => {
+                const headers = "السورة,رقم الآية,النص,الجذور";
+                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + "\n" +
+                  filteredAyahs.map(a => {
+                    // Escape quotes in text
+                    const safeText = `"${a.text.replace(/"/g, '""')}"`;
+                    const safeRoots = `"${a.tokens.map((t: any) => t.root).join(' ')}"`;
+                    return `${a.surahName},${a.ayahNo},${safeText},${safeRoots}`;
+                  }).join("\n");
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `quran_results_${searchResults.root}_${new Date().toISOString().slice(0, 10)}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" />
+              تحميل ملف (CSV)
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Scroll to Top Button */}
+      {showScrollTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-8 right-8 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-xl hover:scale-110 active:scale-90 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
+          aria-label="العودة للأعلى"
+        >
+          <div className="text-xl font-bold">↑</div>
+        </button>
+      )}
+    </div>
+  );
+};
+export default Results;
