@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
+import { API_BASE_URL } from '../config/api';
 
 interface Token {
   pos: number;
@@ -75,7 +76,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const suggestRoots = useCallback(async (query: string): Promise<string[]> => {
     if (!query || query.trim().length < 2) return [];
     try {
-      const res = await fetch(`http://localhost:3002/api/search/suggest?q=${encodeURIComponent(query.trim())}`);
+      const res = await fetch(`${API_BASE_URL}/api/search/suggest?q=${encodeURIComponent(query.trim())}`);
       if (res.ok) {
         return await res.json();
       }
@@ -97,7 +98,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       // Fetch results from backend
-      const resultsResponse = await fetch(`http://localhost:3002/api/search/root/${encodeURIComponent(root.trim())}`);
+      const resultsResponse = await fetch(`${API_BASE_URL}/api/search/root/${encodeURIComponent(root.trim())}`);
 
       if (!resultsResponse.ok) {
         if (resultsResponse.status === 404) {
@@ -113,7 +114,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
       // Fetch statistics
       try {
-        const statsResponse = await fetch(`http://localhost:3002/api/search/statistics/${encodeURIComponent(root.trim())}`);
+        const statsResponse = await fetch(`${API_BASE_URL}/api/search/statistics/${encodeURIComponent(root.trim())}`);
         if (statsResponse.ok) {
           const statsData = await statsResponse.json();
           setStatistics(statsData.statistics);

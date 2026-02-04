@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { API_BASE_URL } from '../config/api';
 import { useRoute, useLocation } from 'wouter';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Layers, ArrowRight, Search, Database, Component, ArrowUpRight, Sparkles, Activity } from 'lucide-react';
@@ -55,7 +56,7 @@ const RootLengthExplorer: React.FC = () => {
         const fetchData = async () => {
             setLoading(true);
             try {
-                const res = await fetch(`http://localhost:3002/api/statistics/roots-by-length/${length}`);
+                const res = await fetch(`${API_BASE_URL}/api/statistics/roots-by-length/${length}`);
                 if (!res.ok) throw new Error('Failed to fetch data');
                 const result = await res.json();
                 if (result.success) {
