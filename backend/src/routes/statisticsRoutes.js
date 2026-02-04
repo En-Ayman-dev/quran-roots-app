@@ -36,125 +36,143 @@ try {
 // Cache for 24 hours (stats don't change often)
 const statsCache = new NodeCache({ stdTTL: 86400 });
 
+const fs = require('fs');
+const path = require('path');
+
 // Get global statistics
 router.get('/global', async (req, res) => {
     try {
-        // Check cache first
-        const cachedStats = statsCache.get('global_stats');
-        if (cachedStats) {
-            return res.json({ success: true, data: cachedStats, fromCache: true });
-        }
+        const statsPath = path.join(__dirname, '../data/global_stats.json');
 
-        console.time('GlobalStats');
+        if (!fs.existsSync(statsPath)) {
+            console.warn('⚠️ global_stats.json not found. Generating on the fly...');
 
-        // PARALLEL EXECUTION: Define all queries
-        const countsQuery = `
-            SELECT 
-                (SELECT COUNT(*) FROM ayah) as totalAyahs,
-                (SELECT COUNT(*) FROM (SELECT DISTINCT surah_no FROM ayah)) as totalSurahs,
-                (SELECT COUNT(DISTINCT root) FROM token WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3) as totalRoots,
-                (SELECT COUNT(*) FROM token WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3) as totalWords
-        `;
+            // On-the-fly Calculation Fallback
+            console.time('GlobalStats Generation');
 
-        const rootsPerSurahQuery = `
-            SELECT a.surah_no, COUNT(DISTINCT t.root) as distinct_roots
-            FROM token t
-            JOIN ayah a ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
-            WHERE t.root IS NOT NULL AND t.root != '' AND LENGTH(t.root) >= 3
-            GROUP BY a.surah_no
-            ORDER BY distinct_roots DESC
-            LIMIT 10
-        `;
+            // PARALLEL EXECUTION: Define all queries
+            const countsQuery = `
+                SELECT 
+                    (SELECT COUNT(*) FROM ayah) as totalAyahs,
+                    (SELECT COUNT(*) FROM (SELECT DISTINCT surah_no FROM ayah)) as totalSurahs,
+                    (SELECT COUNT(DISTINCT root) FROM token WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3) as totalRoots,
+                    (SELECT COUNT(*) FROM token WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3) as totalWords
+            `;
 
-        const uniqueToSurahQuery = `
-            SELECT a.surah_no, COUNT(DISTINCT t.root) as unique_roots_count
-            FROM token t
-            JOIN ayah a ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
-            WHERE t.root IN (
-                SELECT root FROM token 
+            const rootsPerSurahQuery = `
+                SELECT a.surah_no, COUNT(DISTINCT t.root) as distinct_roots
+                FROM token t
+                JOIN ayah a ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
+                WHERE t.root IS NOT NULL AND t.root != '' AND LENGTH(t.root) >= 3
+                GROUP BY a.surah_no
+                ORDER BY distinct_roots DESC
+                LIMIT 10
+            `;
+
+            const uniqueToSurahQuery = `
+                SELECT a.surah_no, COUNT(DISTINCT t.root) as unique_roots_count
+                FROM token t
+                JOIN ayah a ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
+                WHERE t.root IN (
+                    SELECT root FROM token 
+                    WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
+                    GROUP BY root 
+                    HAVING COUNT(DISTINCT SUBSTR(ayah_id, 1, INSTR(ayah_id, ':') - 1)) = 1
+                )
+                GROUP BY a.surah_no
+                ORDER BY unique_roots_count DESC
+                LIMIT 5
+            `;
+
+            const rootLengthQuery = `
+                SELECT LENGTH(root) as len, COUNT(DISTINCT root) as count
+                FROM token
+                WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
+                GROUP BY len
+                ORDER BY len
+            `;
+
+            const hapaxQuery = `
+                SELECT root, COUNT(*) as count 
+                FROM token 
                 WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
                 GROUP BY root 
-                HAVING COUNT(DISTINCT SUBSTR(ayah_id, 1, INSTR(ayah_id, ':') - 1)) = 1
-            )
-            GROUP BY a.surah_no
-            ORDER BY unique_roots_count DESC
-            LIMIT 5
-        `;
+                HAVING count = 1
+                LIMIT 50
+            `;
 
-        const rootLengthQuery = `
-            SELECT LENGTH(root) as len, COUNT(DISTINCT root) as count
-            FROM token
-            WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
-            GROUP BY len
-            ORDER BY len
-        `;
+            const topRootsQuery = `
+                SELECT root, COUNT(*) as count 
+                FROM token 
+                WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
+                GROUP BY root 
+                ORDER BY count DESC 
+                LIMIT 10
+            `;
 
-        const hapaxQuery = `
-            SELECT root, COUNT(*) as count 
-            FROM token 
-            WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
-            GROUP BY root 
-            HAVING count = 1
-            LIMIT 50
-        `;
+            const lexicalDensityQuery = `
+                SELECT 
+                    a.surah_no,
+                    CAST(COUNT(DISTINCT t.root) AS FLOAT) / CAST(COUNT(t.root) AS FLOAT) as density,
+                    COUNT(DISTINCT t.root) as distinct_roots
+                FROM token t
+                JOIN ayah a ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
+                WHERE t.root IS NOT NULL AND t.root != '' AND LENGTH(t.root) >= 3
+                GROUP BY a.surah_no
+                ORDER BY density DESC
+                LIMIT 5
+            `;
 
-        const topRootsQuery = `
-             SELECT root, COUNT(*) as count 
-             FROM token 
-             WHERE root IS NOT NULL AND root != '' AND LENGTH(root) >= 3
-             GROUP BY root 
-             ORDER BY count DESC 
-             LIMIT 10
-        `;
+            // Execute ALL queries in parallel
+            const [
+                counts,
+                rootsPerSurah,
+                uniqueToSurah,
+                rootLength,
+                hapaxRoots,
+                topRoots,
+                lexicalDensity
+            ] = await Promise.all([
+                executeQuery(countsQuery),
+                executeQuery(rootsPerSurahQuery),
+                executeQuery(uniqueToSurahQuery),
+                executeQuery(rootLengthQuery),
+                executeQuery(hapaxQuery),
+                executeQuery(topRootsQuery),
+                executeQuery(lexicalDensityQuery)
+            ]);
 
-        const lexicalDensityQuery = `
-            SELECT 
-                a.surah_no,
-                CAST(COUNT(DISTINCT t.root) AS FLOAT) / CAST(COUNT(t.root) AS FLOAT) as density,
-                COUNT(DISTINCT t.root) as distinct_roots
-            FROM token t
-            JOIN ayah a ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
-            WHERE t.root IS NOT NULL AND t.root != '' AND LENGTH(t.root) >= 3
-            GROUP BY a.surah_no
-            ORDER BY density DESC
-            LIMIT 5
-        `;
+            const stats = {
+                ...counts[0],
+                rootsPerSurah,
+                uniqueToSurah,
+                rootLength,
+                hapaxRoots,
+                topRoots,
+                lexicalDensity,
+                lastUpdated: new Date().toISOString()
+            };
 
-        // Execute ALL queries in parallel
-        const [
-            counts,
-            rootsPerSurah,
-            uniqueToSurah,
-            rootLength,
-            hapaxRoots,
-            topRoots,
-            lexicalDensity
-        ] = await Promise.all([
-            executeQuery(countsQuery),
-            executeQuery(rootsPerSurahQuery),
-            executeQuery(uniqueToSurahQuery),
-            executeQuery(rootLengthQuery),
-            executeQuery(hapaxQuery),
-            executeQuery(topRootsQuery),
-            executeQuery(lexicalDensityQuery)
-        ]);
+            // Save for next time
+            const dir = path.dirname(statsPath);
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+            fs.writeFileSync(statsPath, JSON.stringify(stats, null, 2));
+            console.log('✅ global_stats.json generated and saved.');
+            console.timeEnd('GlobalStats Generation');
 
-        const stats = {
-            ...counts[0],
-            rootsPerSurah,
-            uniqueToSurah,
-            rootLength,
-            hapaxRoots,
-            topRoots,
-            lexicalDensity
-        };
+            res.set('Cache-Control', 'public, max-age=3600');
+            return res.json({ success: true, data: stats, fromCache: false, generated: true });
+        }
 
-        console.timeEnd('GlobalStats');
+        const data = fs.readFileSync(statsPath, 'utf8');
+        const stats = JSON.parse(data);
 
-        // Store in cache
-        statsCache.set('global_stats', stats);
+        // Add cache control for browser
+        res.set('Cache-Control', 'public, max-age=3600');
 
-        res.json({ success: true, data: stats });
+        res.json({ success: true, data: stats, fromCache: true });
     } catch (error) {
         console.error('Error fetching global stats:', error);
         res.status(500).json({ success: false, error: 'Internal Server Error' });

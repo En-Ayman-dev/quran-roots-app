@@ -106,7 +106,7 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
               {/* Quran Text - Preserved & Highlighted */}
               <div className="relative mb-8 mt-4">
                 <span className="absolute -top-4 -right-4 text-6xl text-primary/5 font-serif select-none">“</span>
-                <p className="text-right text-2xl md:text-4xl leading-[2.4] md:leading-[2.6] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
+                <p className="text-right text-xl md:text-2xl leading-[2.2] md:leading-[2.4] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
                   {ayah.text}
                 </p>
               </div>

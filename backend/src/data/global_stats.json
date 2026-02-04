@@ -1,0 +1,372 @@
+{
+  "totalAyahs": 6236,
+  "totalSurahs": 114,
+  "totalRoots": 1824,
+  "totalWords": 64504,
+  "rootsPerSurah": [
+    {
+      "surah_no": 2,
+      "distinct_roots": 652
+    },
+    {
+      "surah_no": 7,
+      "distinct_roots": 539
+    },
+    {
+      "surah_no": 4,
+      "distinct_roots": 510
+    },
+    {
+      "surah_no": 3,
+      "distinct_roots": 497
+    },
+    {
+      "surah_no": 6,
+      "distinct_roots": 473
+    },
+    {
+      "surah_no": 5,
+      "distinct_roots": 467
+    },
+    {
+      "surah_no": 18,
+      "distinct_roots": 408
+    },
+    {
+      "surah_no": 9,
+      "distinct_roots": 404
+    },
+    {
+      "surah_no": 11,
+      "distinct_roots": 401
+    },
+    {
+      "surah_no": 16,
+      "distinct_roots": 389
+    }
+  ],
+  "uniqueToSurah": [
+    {
+      "surah_no": 2,
+      "unique_roots_count": 30
+    },
+    {
+      "surah_no": 12,
+      "unique_roots_count": 25
+    },
+    {
+      "surah_no": 20,
+      "unique_roots_count": 18
+    },
+    {
+      "surah_no": 4,
+      "unique_roots_count": 16
+    },
+    {
+      "surah_no": 7,
+      "unique_roots_count": 16
+    }
+  ],
+  "rootLength": [
+    {
+      "len": 3,
+      "count": 1659
+    },
+    {
+      "len": 4,
+      "count": 73
+    },
+    {
+      "len": 5,
+      "count": 35
+    },
+    {
+      "len": 6,
+      "count": 38
+    },
+    {
+      "len": 7,
+      "count": 13
+    },
+    {
+      "len": 8,
+      "count": 4
+    },
+    {
+      "len": 10,
+      "count": 2
+    }
+  ],
+  "hapaxRoots": [
+    {
+      "root": "آزر",
+      "count": 1
+    },
+    {
+      "root": "أبب",
+      "count": 1
+    },
+    {
+      "root": "أبق",
+      "count": 1
+    },
+    {
+      "root": "أثل",
+      "count": 1
+    },
+    {
+      "root": "أدد",
+      "count": 1
+    },
+    {
+      "root": "أرم",
+      "count": 1
+    },
+    {
+      "root": "أسن",
+      "count": 1
+    },
+    {
+      "root": "أم/ماذا",
+      "count": 1
+    },
+    {
+      "root": "أمت",
+      "count": 1
+    },
+    {
+      "root": "أن/لو",
+      "count": 1
+    },
+    {
+      "root": "أنتما",
+      "count": 1
+    },
+    {
+      "root": "أنم",
+      "count": 1
+    },
+    {
+      "root": "أي/ما",
+      "count": 1
+    },
+    {
+      "root": "أيم",
+      "count": 1
+    },
+    {
+      "root": "إن/لم",
+      "count": 1
+    },
+    {
+      "root": "المص",
+      "count": 1
+    },
+    {
+      "root": "بأر",
+      "count": 1
+    },
+    {
+      "root": "بابل",
+      "count": 1
+    },
+    {
+      "root": "بتر",
+      "count": 1
+    },
+    {
+      "root": "بتك",
+      "count": 1
+    },
+    {
+      "root": "بجس",
+      "count": 1
+    },
+    {
+      "root": "بحث",
+      "count": 1
+    },
+    {
+      "root": "بسق",
+      "count": 1
+    },
+    {
+      "root": "بسم",
+      "count": 1
+    },
+    {
+      "root": "بصل",
+      "count": 1
+    },
+    {
+      "root": "بطأ",
+      "count": 1
+    },
+    {
+      "root": "بغل",
+      "count": 1
+    },
+    {
+      "root": "بقع",
+      "count": 1
+    },
+    {
+      "root": "بقل",
+      "count": 1
+    },
+    {
+      "root": "بكك",
+      "count": 1
+    },
+    {
+      "root": "بلع",
+      "count": 1
+    },
+    {
+      "root": "بلي",
+      "count": 1
+    },
+    {
+      "root": "بهل",
+      "count": 1
+    },
+    {
+      "root": "بيد",
+      "count": 1
+    },
+    {
+      "root": "تان",
+      "count": 1
+    },
+    {
+      "root": "ترق",
+      "count": 1
+    },
+    {
+      "root": "تعس",
+      "count": 1
+    },
+    {
+      "root": "تفث",
+      "count": 1
+    },
+    {
+      "root": "تقن",
+      "count": 1
+    },
+    {
+      "root": "تلل",
+      "count": 1
+    },
+    {
+      "root": "تين",
+      "count": 1
+    },
+    {
+      "root": "تيه",
+      "count": 1
+    },
+    {
+      "root": "ثبط",
+      "count": 1
+    },
+    {
+      "root": "ثبو",
+      "count": 1
+    },
+    {
+      "root": "ثجج",
+      "count": 1
+    },
+    {
+      "root": "ثرب",
+      "count": 1
+    },
+    {
+      "root": "ثري",
+      "count": 1
+    },
+    {
+      "root": "ثيب",
+      "count": 1
+    },
+    {
+      "root": "ثَم",
+      "count": 1
+    },
+    {
+      "root": "جبت",
+      "count": 1
+    }
+  ],
+  "topRoots": [
+    {
+      "root": "مِن",
+      "count": 3330
+    },
+    {
+      "root": "أله",
+      "count": 2853
+    },
+    {
+      "root": "إنّ",
+      "count": 2611
+    },
+    {
+      "root": "قول",
+      "count": 1723
+    },
+    {
+      "root": "على",
+      "count": 1446
+    },
+    {
+      "root": "كون",
+      "count": 1403
+    },
+    {
+      "root": "الذي",
+      "count": 1386
+    },
+    {
+      "root": "ربب",
+      "count": 979
+    },
+    {
+      "root": "أمن",
+      "count": 886
+    },
+    {
+      "root": "علم",
+      "count": 854
+    }
+  ],
+  "lexicalDensity": [
+    {
+      "surah_no": 105,
+      "density": 0.95,
+      "distinct_roots": 19
+    },
+    {
+      "surah_no": 110,
+      "density": 0.9444444444444444,
+      "distinct_roots": 17
+    },
+    {
+      "surah_no": 111,
+      "density": 0.9411764705882353,
+      "distinct_roots": 16
+    },
+    {
+      "surah_no": 103,
+      "density": 0.9230769230769231,
+      "distinct_roots": 12
+    },
+    {
+      "surah_no": 94,
+      "density": 0.9,
+      "distinct_roots": 18
+    }
+  ],
+  "lastUpdated": "2026-02-04T23:19:17.288Z"
+}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useQuran } from '@/contexts/QuranContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,14 +15,45 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', showRecent
   const [showSuggestions, setShowSuggestions] = useState(false);
   const { searchByRoot, suggestRoots, recentSearches, removeRecentSearch, loading } = useQuran();
 
-  const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const debounceRef = useRef<number | null>(null);
+  const lastQueryRef = useRef('');
+
+  // Client-side cache for suggestions
+  const suggestionsCache = useRef<Map<string, string[]>>(new Map());
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
 
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+
     if (val.trim().length >= 2) {
-      const found = await suggestRoots(val);
-      setSuggestions(found);
-      setShowSuggestions(true);
+      // Check cache first
+      if (suggestionsCache.current.has(val.trim())) {
+        const cached = suggestionsCache.current.get(val.trim()) || [];
+        setSuggestions(cached);
+        setShowSuggestions(cached.length > 0);
+        return;
+      }
+
+      // debounce network calls to improve responsiveness
+      debounceRef.current = window.setTimeout(async () => {
+        lastQueryRef.current = val;
+        const found = await suggestRoots(val);
+
+        // Update cache
+        if (found && found.length > 0) {
+          suggestionsCache.current.set(val.trim(), found);
+        }
+
+        // ignore if input changed since request started
+        if (lastQueryRef.current === val) {
+          setSuggestions(found);
+          setShowSuggestions(found.length > 0);
+        }
+      }, 150); // Reduced debounce slightly for snappier feel
     } else {
       setSuggestions([]);
       setShowSuggestions(false);
@@ -32,7 +63,13 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', showRecent
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inputValue.trim()) {
+      // Close suggestions immediately
       setShowSuggestions(false);
+      // Invalidate any pending suggestion callbacks
+      lastQueryRef.current = '__submitted__';
+
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+
       await searchByRoot(inputValue.trim());
     }
   };
@@ -40,6 +77,8 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', showRecent
   const handleSuggestionClick = async (suggestion: string) => {
     setInputValue(suggestion);
     setShowSuggestions(false);
+    // Invalidate pending suggestions
+    lastQueryRef.current = '__submitted__';
     await searchByRoot(suggestion);
   };
 
