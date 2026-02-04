@@ -92,7 +92,12 @@ app.use(compression());
 app.use(morgan('dev'));
 app.use(
   cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000'],
+    origin: [
+      'http://localhost:5173',
+      'http://localhost:3000',
+      'https://quran-roots-dm8fk9eqy-en-ayman-devs-projects.vercel.app',
+      /\.vercel\.app$/ // Allow all Vercel subdomains (useful for previews)
+    ],
     credentials: true,
   })
 );
