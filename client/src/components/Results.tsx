@@ -93,7 +93,21 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
         </div>
       </div>
 
-      {/* EXPANDABLE CONTENT */}
+      {/* NEW: VISIBLE QURAN TEXT AREA (Using Scrollbar for long verses) */}
+      <div className="px-6 md:px-10 pb-4 pt-2 -mt-2">
+        <div className="relative">
+          {/* Decorative Quote */}
+          <span className="absolute -top-3 -right-2 text-5xl text-primary/5 font-serif select-none">“</span>
+
+          <div className="max-h-[160px] overflow-y-auto custom-scrollbar pl-2 pr-4 py-2 hover:bg-muted/5 rounded-xl transition-colors">
+            <p className="text-right text-lg md:text-xl leading-[2.4] md:leading-[2.6] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
+              {ayah.text}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* EXPANDABLE CONTENT (Analysis Only) */}
       <AnimatePresence>
         {isExpanded && (
           <motion.div
@@ -104,20 +118,12 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
           >
             <div className="px-6 md:px-10 pb-8 pt-2 border-t border-border/40 bg-gradient-to-b from-background to-muted/10">
 
-              {/* Quran Text - Preserved & Highlighted */}
-              <div className="relative mb-8 mt-4">
-                <span className="absolute -top-4 -right-4 text-6xl text-primary/5 font-serif select-none">“</span>
-                <p className="text-right text-lg md:text-xl leading-[2.2] md:leading-[2.4] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
-                  {ayah.text}
-                </p>
-              </div>
-
               {/* Tokens and Roots Analysis */}
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="bg-background/80 rounded-2xl p-6 border border-border/50 shadow-sm"
+                className="bg-background/80 rounded-2xl p-6 border border-border/50 shadow-sm mt-6"
               >
                 <div className="flex flex-wrap gap-x-8 gap-y-6">
 
@@ -173,13 +179,48 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
 export const Results: React.FC = () => {
   const { searchResults, loading, error, searchByRoot } = useQuran();
 
-  // State for pagination and filtering
+  // --- STATE ---
   const [visibleCount, setVisibleCount] = React.useState(10);
   const [selectedSurah, setSelectedSurah] = React.useState<string>('all');
   const [selectedJuz, setSelectedJuz] = React.useState<string>('all');
-  const [subSearch, setSubSearch] = React.useState<string>(''); // New Sub-search state
+  const [subSearch, setSubSearch] = React.useState<string>('');
   const [showScrollTop, setShowScrollTop] = React.useState(false);
+  const [selectedDerivative, setSelectedDerivative] = React.useState<string | null>(null);
 
+  // --- DERIVED DATA (MEMOs) ---
+  // Safely compute derived data, even if searchResults is null/loading
+  const uniqueJuzs = React.useMemo(() => {
+    if (!searchResults) return [];
+    return Array.from(new Set(searchResults.ayahs.map(a => a.juz))).sort((a, b) => a - b);
+  }, [searchResults]);
+
+  const availableSurahs = React.useMemo(() => {
+    if (!searchResults) return [];
+    let ayahsToConsider = searchResults.ayahs;
+    if (selectedJuz !== 'all') {
+      const juzNum = parseInt(selectedJuz);
+      ayahsToConsider = ayahsToConsider.filter(a => a.juz === juzNum);
+    }
+    return Array.from(new Set(ayahsToConsider.map(a => a.surahName)));
+  }, [searchResults, selectedJuz]);
+
+  const derivatives = React.useMemo(() => {
+    if (!searchResults) return [];
+    const wordCounts = new Map<string, number>();
+    searchResults.ayahs.forEach(ayah => {
+      ayah.tokens.forEach((token: any) => {
+        if (token.root === searchResults.root) {
+          const word = token.token_uthmani || token.token;
+          wordCounts.set(word, (wordCounts.get(word) || 0) + 1);
+        }
+      });
+    });
+    return Array.from(wordCounts.entries())
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+  }, [searchResults]);
+
+
+  // --- EFFECTS ---
   // Scroll detection
   React.useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 400);
@@ -187,12 +228,13 @@ export const Results: React.FC = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Reset pagination when search results change
+  // Reset pagination/filters when search results change
   React.useEffect(() => {
     setVisibleCount(10);
     setSelectedSurah('all');
     setSelectedJuz('all');
     setSubSearch('');
+    setSelectedDerivative(null);
   }, [searchResults]);
 
   const scrollToTop = () => {
@@ -205,6 +247,7 @@ export const Results: React.FC = () => {
     scrollToTop();
   };
 
+  // --- EARLY RETURNS (Render Logic) ---
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center py-32">
@@ -248,13 +291,17 @@ export const Results: React.FC = () => {
     );
   }
 
-  // --- Filtering Logic ---
-  const uniqueSurahs = Array.from(new Set(searchResults.ayahs.map(a => a.surahName)));
-  const uniqueJuzs = Array.from(new Set(searchResults.ayahs.map(a => a.juz))).sort((a, b) => a - b);
+  // --- Filtering Logic (Using pre-calculated hooks) ---
 
   const filteredAyahs = searchResults.ayahs.filter(ayah => {
     const matchSurah = selectedSurah === 'all' || ayah.surahName === selectedSurah;
     const matchJuz = selectedJuz === 'all' || ayah.juz === parseInt(selectedJuz);
+
+    // Derivative Filter
+    let matchDerivative = true;
+    if (selectedDerivative) {
+      matchDerivative = ayah.tokens.some((t: any) => (t.token_uthmani === selectedDerivative || t.token === selectedDerivative));
+    }
 
     // Smart Sub-search Logic
     let matchSub = true;
@@ -270,7 +317,7 @@ export const Results: React.FC = () => {
         ayah.otherRoots.some((r: string) => normalizeArabic(r).includes(term));
     }
 
-    return matchSurah && matchJuz && matchSub;
+    return matchSurah && matchJuz && matchSub && matchDerivative;
   });
 
   const visibleAyahs = filteredAyahs.slice(0, visibleCount);
@@ -280,7 +327,7 @@ export const Results: React.FC = () => {
     <div className="space-y-8 animate-in slide-in-from-bottom-8 duration-700 min-h-[60vh]">
 
       {/* Sticky Premium Header - Transparent & Centered */}
-      <div className="sticky top-[85px] z-30 transition-all duration-300">
+      <div className="sticky top-[85px] z-30 transition-all duration-300 space-y-4">
         {/* Container for centering */}
         <div className="container mx-auto max-w-4xl">
           <div className="bg-background/60 backdrop-blur-xl border border-primary/5 shadow-xl shadow-primary/5 rounded-2xl p-3 md:p-4 flex flex-col md:flex-row items-center justify-between gap-4 transition-all hover:bg-background/80">
@@ -298,7 +345,45 @@ export const Results: React.FC = () => {
             </div>
 
             {/* Smart Filters & Sub-Search (Compact) */}
-            <div className="flex flex-1 w-full md:w-auto items-center gap-2 justify-end">
+            <div className="flex flex-1 w-full md:w-auto items-center gap-2 justify-end flex-wrap">
+
+              {/* Action Buttons: Copy & Download (Relocated) */}
+              <div className="flex items-center gap-1 border-l border-border/50 pl-2 ml-2">
+                <button
+                  onClick={() => {
+                    const text = filteredAyahs.map(a => `${a.text} \n[${a.surahName}: ${a.ayahNo}]`).join('\n\n');
+                    navigator.clipboard.writeText(text);
+                    alert('تم نسخ جميع النتائج المصفاة إلى الحافظة');
+                  }}
+                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                  title="نسخ النتائج"
+                >
+                  <Copy className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => {
+                    const headers = "السورة,رقم الآية,النص,الجذور";
+                    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + "\n" +
+                      filteredAyahs.map(a => {
+                        const safeText = `"${a.text.replace(/"/g, '""')}"`;
+                        const safeRoots = `"${a.tokens.map((t: any) => t.root).join(' ')}"`;
+                        return `${a.surahName},${a.ayahNo},${safeText},${safeRoots}`;
+                      }).join("\n");
+
+                    const encodedUri = encodeURI(csvContent);
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodedUri);
+                    link.setAttribute("download", `quran_results_${searchResults.root}_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
+                  title="تحميل ملف (CSV)"
+                >
+                  <Download className="w-4 h-4" />
+                </button>
+              </div>
 
               {/* SUB-SEARCH INPUT */}
               <div className="relative flex-1 min-w-[140px] max-w-[220px] group transition-all focus-within:max-w-[280px]">
@@ -333,17 +418,19 @@ export const Results: React.FC = () => {
                   dir="rtl"
                 >
                   <option value="all">كل السور 🕌</option>
-                  {uniqueSurahs.map(s => <option key={s} value={s}>سورة {s}</option>)}
+                  {availableSurahs.map(s => <option key={s} value={s}>سورة {s}</option>)}
                 </select>
               </div>
 
               {/* Juz Filter */}
               <div className="relative group">
                 <select
-                  className="w-full md:w-32 appearance-none bg-secondary/50 hover:bg-secondary cursor-pointer border-transparent hover:border-primary/20 rounded-xl px-8 py-2.5 text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-primary/20 text-right dir-rtl"
+                  className={`w-full md:w-32 appearance-none bg-secondary/50 hover:bg-secondary cursor-pointer border-transparent hover:border-primary/20 rounded-xl px-8 py-2.5 text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-primary/20 text-right dir-rtl ${selectedSurah !== 'all' ? 'opacity-50 cursor-not-allowed' : ''}`}
                   value={selectedJuz}
                   onChange={(e) => { setSelectedJuz(e.target.value); setVisibleCount(10); }}
+                  disabled={selectedSurah !== 'all'}
                   dir="rtl"
+                  title={selectedSurah !== 'all' ? 'لا يمكن اختيار الجزء عند تحديد سورة معينة' : ''}
                 >
                   <option value="all">الأجزاء 📖</option>
                   {uniqueJuzs.map(j => <option key={j} value={j}>الجزء {j}</option>)}
@@ -352,8 +439,46 @@ export const Results: React.FC = () => {
             </div>
           </div>
 
+          {/* Morphological Derivatives Filter Strip */}
+          {derivatives.length > 0 && (
+            <div className="mt-4 overflow-hidden relative group/strip">
+              <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none snap-x mask-linear-fade dir-rtl pr-1" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                <button
+                  onClick={() => setSelectedDerivative(null)}
+                  className={`flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-bold transition-all snap-center border flex items-center gap-2 ${selectedDerivative === null
+                    ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
+                    : 'bg-background/50 text-muted-foreground border-border hover:bg-secondary hover:text-foreground'
+                    }`}
+                >
+                  <span>الكل</span>
+                  <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${selectedDerivative === null ? 'bg-primary-foreground/20' : 'bg-muted'}`}>
+                    {derivatives.length}
+                  </span>
+                </button>
+                {derivatives.map(([word, count], idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setSelectedDerivative(word === selectedDerivative ? null : word)}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-full text-sm font-medium transition-all snap-center border font-quran flex items-center gap-2 ${selectedDerivative === word
+                      ? 'bg-primary text-primary-foreground border-primary shadow-lg scale-105'
+                      : 'bg-background/50 text-foreground border-border hover:bg-secondary hover:border-primary/30'
+                      }`}
+                  >
+                    <span>{word}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-sans font-bold ${selectedDerivative === word ? 'bg-primary-foreground/20' : 'bg-muted text-muted-foreground'}`}>
+                      {count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+              {/* Fade Indicators for Scroll */}
+              <div className="absolute left-0 top-0 bottom-2 w-12 bg-gradient-to-r from-background to-transparent pointer-events-none" />
+              <div className="absolute right-0 top-0 bottom-2 w-8 bg-gradient-to-l from-background to-transparent pointer-events-none" />
+            </div>
+          )}
+
           {/* Active Filters Display */}
-          {(selectedSurah !== 'all' || selectedJuz !== 'all' || subSearch) && (
+          {(selectedSurah !== 'all' || selectedJuz !== 'all' || subSearch || selectedDerivative) && (
             <div className="flex flex-wrap gap-2 mt-3 animate-in fade-in slide-in-from-top-2">
               {selectedSurah !== 'all' && (
                 <button onClick={() => setSelectedSurah('all')} className="flex items-center gap-2 px-3 py-1 bg-primary text-primary-foreground text-xs rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20">
@@ -365,17 +490,21 @@ export const Results: React.FC = () => {
                   الجزء {selectedJuz} <span className="opacity-70">✕</span>
                 </button>
               )}
+              {selectedDerivative && (
+                <button onClick={() => setSelectedDerivative(null)} className="flex items-center gap-2 px-3 py-1 bg-primary text-primary-foreground text-xs rounded-full hover:bg-primary/90 transition-colors shadow-lg shadow-primary/20 font-quran">
+                  كلمة: {selectedDerivative} <span className="opacity-70">✕</span>
+                </button>
+              )}
               {subSearch && (
                 <button onClick={() => setSubSearch('')} className="flex items-center gap-2 px-3 py-1 bg-secondary text-secondary-foreground text-xs rounded-full hover:bg-secondary/80 transition-colors border border-primary/20">
                   بحث: "{subSearch}" <span className="opacity-70">✕</span>
                 </button>
               )}
-              <button onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch('') }} className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2">
+              <button onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch(''); setSelectedDerivative(null); }} className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2">
                 مسح الكل
               </button>
             </div>
           )}
-
         </div>
       </div>
 
@@ -385,7 +514,7 @@ export const Results: React.FC = () => {
           <Card className="border-dashed py-16 text-center bg-muted/20">
             <div className="text-muted-foreground">لا توجد نتائج تطابق الفلاتر المختارة</div>
             <button
-              onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch(''); }}
+              onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch(''); setSelectedDerivative(null); }}
               className="mt-4 text-primary font-medium hover:underline"
             >
               إعادة ضبط القلاتر
@@ -432,46 +561,8 @@ export const Results: React.FC = () => {
             )}
           </div>
 
-          {/* Action Buttons: Copy All & Download */}
-          <div className="flex justify-end gap-2 mt-4 pt-4 border-t border-border/40 w-full animate-in fade-in slide-in-from-top-1">
-            <button
-              onClick={() => {
-                const text = filteredAyahs.map(a => `${a.text} \n[${a.surahName}: ${a.ayahNo}]`).join('\n\n');
-                navigator.clipboard.writeText(text);
-                // Simple feedback alert or toast can be used. For now, we trust the user sees the action.
-                alert('تم نسخ جميع النتائج المصفاة إلى الحافظة');
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <Copy className="w-3.5 h-3.5" />
-              نسخ النتائج
-            </button>
 
-            <button
-              onClick={() => {
-                const headers = "السورة,رقم الآية,النص,الجذور";
-                const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + headers + "\n" +
-                  filteredAyahs.map(a => {
-                    // Escape quotes in text
-                    const safeText = `"${a.text.replace(/"/g, '""')}"`;
-                    const safeRoots = `"${a.tokens.map((t: any) => t.root).join(' ')}"`;
-                    return `${a.surahName},${a.ayahNo},${safeText},${safeRoots}`;
-                  }).join("\n");
-
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement("a");
-                link.setAttribute("href", encodedUri);
-                link.setAttribute("download", `quran_results_${searchResults.root}_${new Date().toISOString().slice(0, 10)}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-primary hover:bg-primary/5 rounded-lg transition-colors"
-            >
-              <Download className="w-3.5 h-3.5" />
-              تحميل ملف (CSV)
-            </button>
-          </div>
+          {/* Action Buttons: Relocated to Header */}
         </div>
       )}
 
