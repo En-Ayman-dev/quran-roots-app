@@ -73,8 +73,56 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : [];
   });
 
+  // Static Index State
+  const [wordIndex, setWordIndex] = useState<{ roots: string[]; words: Record<string, string> } | null>(null);
+
+  // Load Static Index on Mount
+  React.useEffect(() => {
+    fetch('/word_index.json')
+      .then(res => res.json())
+      .then(data => {
+        setWordIndex(data);
+        console.log("✅ Word Index Loaded:", data.roots.length, "roots");
+      })
+      .catch(err => console.error("❌ Failed to load word index:", err));
+  }, []);
+
   const suggestRoots = useCallback(async (query: string): Promise<string[]> => {
     if (!query || query.trim().length < 2) return [];
+
+    // Use Static Index if available
+    if (wordIndex) {
+      const term = query.trim().toLowerCase(); // Normalize input if needed, Arabic usually doesn't need toLowerCase but good practice
+      // Remove diacritics from term for matching if user typed them
+      const cleanTerm = term.replace(/[\u064B-\u065F\u0670\u0640]/g, "");
+
+      const distinctRoots = new Set<string>();
+
+      // 1. Direct Root Match (Startswith)
+      wordIndex.roots.forEach(root => {
+        if (root.startsWith(cleanTerm)) {
+          distinctRoots.add(root);
+        }
+      });
+
+      // 2. Word Match (Startswith) -> Map to Root
+      // Iterate over words? That's big (15k+). 
+      // Filter keys? 
+      // Optimized: Loop through words, limit results.
+      let matchCount = 0;
+      for (const [word, root] of Object.entries(wordIndex.words)) {
+        if (distinctRoots.size >= 10) break; // Limit suggestions
+
+        if (word.startsWith(cleanTerm)) {
+          distinctRoots.add(root);
+          matchCount++;
+        }
+      }
+
+      return Array.from(distinctRoots).slice(0, 10);
+    }
+
+    // Fallback to API if index not loaded yet
     try {
       const res = await fetch(`${API_BASE_URL}/api/search/suggest?q=${encodeURIComponent(query.trim())}`);
       if (res.ok) {
@@ -85,7 +133,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Suggestion fetch error', e);
       return [];
     }
-  }, []);
+  }, [wordIndex]);
 
   const searchByRoot = useCallback(async (root: string) => {
     if (!root.trim()) {

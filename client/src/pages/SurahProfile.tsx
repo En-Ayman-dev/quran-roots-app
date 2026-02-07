@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion'
 import { ArrowRight, BookOpen, Sparkles, Anchor, Activity, Eye, ArrowUpRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { QuranLoader } from '@/components/ui/QuranLoader';
 
 interface Ayah {
     surah_no: number;
@@ -102,11 +103,7 @@ const SurahProfile: React.FC = () => {
     if (loading) {
         return (
             <div className="flex h-screen items-center justify-center bg-background relative overflow-hidden">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-primary/5 via-background to-background" />
-                <div className="z-10 flex flex-col items-center gap-6">
-                    <div className="w-20 h-20 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-lg"></div>
-                    <p className="text-primary font-amiri text-2xl animate-pulse">جاري تحميل السورة...</p>
-                </div>
+                <QuranLoader message="جاري استحضار السورة..." />
             </div>
         );
     }

@@ -20,7 +20,7 @@ import { ThemeToggle } from '@/components/ThemeToggle';
  * - Purposeful interactions with smooth transitions
  */
 export default function Home() {
-  const { searchResults } = useQuran();
+  const { searchResults, loading } = useQuran();
 
   // Sidebar & Labs State
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
@@ -86,7 +86,7 @@ export default function Home() {
       {/* Main Content */}
       <main className="container py-8">
         <div className="max-w-5xl mx-auto">
-          {searchResults ? (
+          {searchResults || loading ? (
             <div className="space-y-6">
 
 

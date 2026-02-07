@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
+import { QuranLoader } from '../components/ui/QuranLoader';
 
 interface RootItem {
     root: string;
@@ -75,9 +76,8 @@ const RootLengthExplorer: React.FC = () => {
         fetchData();
     }, [length]);
 
-    const handleRootClick = async (root: string) => {
-        await searchByRoot(root);
-        setLocation(`/details/${root}/root/search`);
+    const handleRootClick = (root: string) => {
+        setLocation(`/details/${encodeURIComponent(root)}/root/search`);
     };
 
     const scrollToTop = () => {
@@ -127,10 +127,7 @@ const RootLengthExplorer: React.FC = () => {
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="flex flex-col items-center gap-6">
-                    <div className="w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-lg"></div>
-                    <p className="text-primary font-amiri text-2xl animate-pulse">جاري تحليل البيانات...</p>
-                </div>
+                <QuranLoader message="جاري تحليل البيانات..." />
             </div>
         );
     }

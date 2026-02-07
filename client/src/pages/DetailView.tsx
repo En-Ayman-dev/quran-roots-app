@@ -9,6 +9,7 @@ import { getSurahType } from '../utils/surahHelpers';
 import { Card, CardContent } from '../components/ui/card';
 import { motion } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
+import { QuranLoader } from '../components/ui/QuranLoader';
 
 // Helper to remove Tashkeel
 const removeTashkeel = (text: string) => {
@@ -17,7 +18,7 @@ const removeTashkeel = (text: string) => {
 
 const DetailView: React.FC = () => {
     const [match, params] = useRoute('/details/:root/:type/:value');
-    const { searchResults, statistics } = useQuran();
+    const { searchResults, statistics, searchByRoot, loading } = useQuran();
     const [_, setLocation] = useLocation();
 
     // Local State for Interactivity
@@ -30,17 +31,24 @@ const DetailView: React.FC = () => {
     const focusAyahIdProp = searchParams.get('focus');
     const focusAyahId = focusAyahIdProp ? parseInt(focusAyahIdProp) : undefined;
 
-    // Redirect if no data (e.g. refresh)
-    React.useEffect(() => {
-        if (!searchResults || !statistics) {
-            setLocation('/');
-        }
-    }, [searchResults, statistics, setLocation]);
-
     // Safe derivation of params
     const { root, type, value } = params || {};
     const decodedValue = value ? decodeURIComponent(value) : '';
     const decodedRoot = root ? decodeURIComponent(root) : '';
+
+    // Fetch data if missing or root mismatch
+    React.useEffect(() => {
+        if (decodedRoot) {
+            if (!searchResults || searchResults.root !== decodedRoot) {
+                searchByRoot(decodedRoot);
+            }
+        } else {
+            // If no root in URL, go back
+            setLocation('/');
+        }
+    }, [decodedRoot, searchResults, searchByRoot, setLocation]);
+
+
 
     // 1. Base Filtering Logic (Drill-down)
     const { baseList, title, description } = useMemo(() => {
@@ -170,6 +178,14 @@ const DetailView: React.FC = () => {
             setLocation('/dashboard');
         }
     };
+
+    if (loading || (decodedRoot && (!searchResults || searchResults.root !== decodedRoot))) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-background">
+                <QuranLoader message={`جاري استحضار تفاصيل الجذر "${decodedRoot}"...`} />
+            </div>
+        );
+    }
 
     if (!searchResults || !statistics || !match || !params) {
         return null;

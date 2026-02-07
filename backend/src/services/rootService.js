@@ -62,26 +62,19 @@ class RootService {
 
   // Internal helper for the core search logic
   async performSearch(targetRoot) {
-    const ayahQuery = `
-      SELECT DISTINCT
-        a.global_ayah,
-        a.surah_no,
-        a.ayah_no,
-        a.text_uthmani,
-        a.page,
-        a.juz,
-        COUNT(t.token) as root_count
-      FROM ayah a
-      INNER JOIN token t ON t.ayah_id = (CAST(a.surah_no AS TEXT) || ':' || CAST(a.ayah_no AS TEXT))
-      WHERE (t.root = ? OR t.root LIKE ?)
-      AND LENGTH(t.root) >= 3
-      GROUP BY a.global_ayah
-      ORDER BY a.surah_no, a.ayah_no
+    // OPTIMIZATION: Step 1 - Get Root Counts directly from Token table (Indexed access)
+    // Avoids the expensive JOIN on calculated fields: (CAST(a.surah_no AS TEXT) || ':' || ...)
+    const tokenCountsQuery = `
+      SELECT ayah_id, COUNT(*) as root_count
+      FROM token
+      WHERE root = ?
+      GROUP BY ayah_id
     `;
 
-    const ayahs = await executeQuery(ayahQuery, [targetRoot, `%${targetRoot}%`]);
+    // We only need the root matches from the token table first
+    const tokenCounts = await executeQuery(tokenCountsQuery, [targetRoot]);
 
-    if (ayahs.length === 0) {
+    if (tokenCounts.length === 0) {
       return {
         root: targetRoot,
         ayahs: [],
@@ -89,10 +82,69 @@ class RootService {
       };
     }
 
-    // Fix: Use the correct ayah_id format (surah:ayah) for querying the token table
-    const ayahIds = ayahs.map(ayah => `${ayah.surah_no}:${ayah.ayah_no}`);
-    const placeholders = ayahIds.map(() => '?').join(',');
+    // Sort by integer surah/ayah for consistent order if needed, but we'll sort final result
+    // map "surah:ayah" -> { surah, ayah, count }
+    const validAyahs = tokenCounts.map(tc => {
+      const [surah, ayah] = tc.ayah_id.split(':').map(Number);
+      return { surah, ayah, count: tc.root_count, id: tc.ayah_id };
+    });
 
+    // OPTIMIZATION: Step 2 - Fetch Ayah details for ONLY the matching ayahs
+    // Construct a filter clause. 
+    // Since we might have many IDs, we can't use simple IN (...) because we need composite key (surah, ayah)
+    // Or we can rely on global_ayah if we knew it mapping.
+    // Efficient approach: `(surah_no = ? AND ayah_no = ?) OR ...`
+    // SQLite can handle many ORs, but if it's too many (e.g. > 500), we might need to chunk it?
+    // 500 ayahs is a lot for one root, but possible.
+    // Let's use a reconstructed ID match if possible or just loop?
+
+    // Actually, since we know the surah/ayah pairs, we can try to fetch by surah if list is huge?
+    // Let's use the OR strategy, it is generally safe for < 1000 parameters.
+
+    // OPTIMIZATION: Step 2 - Fetch Ayah details for ONLY the matching ayahs
+    // Use chunking to avoid SQLite limit (SQLITE_LIMIT_VARIABLE_NUMBER which defaults to 999)
+    // AND to avoid SQLITE_MAX_EXPR_DEPTH (default 1000, but can be 100 on restrictive envs/Turso)
+    const CHUNK_SIZE = 50; // Reduced from 400 to comply with depth limit of 100
+    let ayahs = [];
+
+    for (let i = 0; i < validAyahs.length; i += CHUNK_SIZE) {
+      const chunk = validAyahs.slice(i, i + CHUNK_SIZE);
+      const ayahConditions = chunk.map(() => `(surah_no = ? AND ayah_no = ?)`).join(' OR ');
+      const ayahParams = chunk.flatMap(a => [a.surah, a.ayah]);
+
+      const chunkQuery = `
+        SELECT 
+          global_ayah, surah_no, ayah_no, text_uthmani, page, juz
+        FROM ayah
+        WHERE ${ayahConditions}
+        ORDER BY surah_no, ayah_no
+      `;
+
+      const chunkResults = await executeQuery(chunkQuery, ayahParams);
+      ayahs = ayahs.concat(chunkResults);
+    }
+
+    // Ensure final list is sorted specifically by Quranic order
+    ayahs.sort((a, b) => {
+      if (a.surah_no !== b.surah_no) return a.surah_no - b.surah_no;
+      return a.ayah_no - b.ayah_no;
+    });
+
+    // Merge counts
+    const ayahsWithCounts = ayahs.map(a => {
+      // Find count
+      const match = validAyahs.find(v => v.surah === a.surah_no && v.ayah === a.ayah_no);
+      return { ...a, root_count: match ? match.count : 0 };
+    });
+
+    // ... Original Logic for Enrichment ...
+
+    // Fix: Use the correct ayah_id format (surah:ayah) for querying the token table
+    const ayahIds = ayahsWithCounts.map(ayah => `${ayah.surah_no}:${ayah.ayah_no}`);
+
+    // Optimize: Fetch ALL tokens for these ayahs to highlight and find other roots
+    // Use IN clause which is efficient for string IDs
+    const placeholders = ayahIds.map(() => '?').join(',');
     const tokensQuery = `
       SELECT ayah_id, pos, token_uthmani as token, root, token_plain_norm
       FROM token_uthmani
@@ -110,13 +162,12 @@ class RootService {
       tokensByAyah[token.ayah_id].push(token);
     });
 
-    const enrichedAyahs = ayahs.map(ayah => {
+    const enrichedAyahs = ayahsWithCounts.map(ayah => {
       const ayahId = ayah.global_ayah;
       const lookupId = `${ayah.surah_no}:${ayah.ayah_no}`;
       let tokens = tokensByAyah[lookupId] || [];
 
       // Filter out short roots (less than 3 chars) from display, unless it's the target root
-      // IMPORTANT: We want to capture the Forms (derivations) of the target root here.
       const targetTokens = tokens.filter(t => t.root === targetRoot);
 
       // Determine other roots
@@ -132,15 +183,15 @@ class RootService {
         surahName: getSurahName(ayah.surah_no),
         text: ayah.text_uthmani,
         rootCount: ayah.root_count,
-        tokens: targetTokens, // Pass target tokens specifically for highlighting/form analysis
-        allTokens: tokens, // Pass all tokens for context if needed
+        tokens: targetTokens,
+        allTokens: tokens,
         otherRoots: Array.from(otherRootsSet),
         page: ayah.page,
         juz: ayah.juz
       };
     });
 
-    const totalOccurrences = ayahs.reduce((sum, ayah) => sum + ayah.root_count, 0);
+    const totalOccurrences = enrichedAyahs.reduce((sum, ayah) => sum + ayah.root_count, 0);
 
     return {
       root: targetRoot,

@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, BookOpen, ChevronDown, ChevronUp, Search, X, Copy, Check, Download, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { QuranLoader } from './ui/QuranLoader';
 
 // --- Utility: Remove Arabic Diacritics (Tashkeel) ---
 const normalizeArabic = (text: string) => {
@@ -106,7 +107,7 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
               {/* Quran Text - Preserved & Highlighted */}
               <div className="relative mb-8 mt-4">
                 <span className="absolute -top-4 -right-4 text-6xl text-primary/5 font-serif select-none">“</span>
-                <p className="text-right text-xl md:text-2xl leading-[2.2] md:leading-[2.4] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
+                <p className="text-right text-lg md:text-xl leading-[2.2] md:leading-[2.4] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
                   {ayah.text}
                 </p>
               </div>
@@ -206,14 +207,8 @@ export const Results: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-32 animate-in fade-in zoom-in duration-700">
-        <div className="relative">
-          <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse" />
-          <div className="relative bg-card/50 backdrop-blur-xl p-8 rounded-full border border-primary/10 shadow-2xl">
-            <BookOpen className="w-16 h-16 text-primary animate-bounce stroke-[1.5]" />
-          </div>
-        </div>
-        <p className="mt-8 text-xl font- Amiri text-foreground/80 animate-pulse">...جاري استحضار الآيات الكريمة</p>
+      <div className="flex flex-col items-center justify-center py-32">
+        <QuranLoader />
       </div>
     );
   }
