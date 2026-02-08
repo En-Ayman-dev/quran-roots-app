@@ -81,7 +81,9 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     apiClient.get<{ roots: string[]; words: Record<string, string> }>('resources/word-index')
       .then(data => {
         setWordIndex(data);
-        console.log("✅ Word Index Loaded Securely:", data.roots.length, "roots");
+        if (import.meta.env.DEV) {
+          console.log("✅ Word Index Loaded Securely:", data.roots.length, "roots");
+        }
       })
       .catch(err => console.error("❌ Failed to load word index:", err));
   }, []);

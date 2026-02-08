@@ -32,8 +32,7 @@ export const ProjectAnalytics: React.FC = () => {
         setLocation(`/surah/${surahNo}`);
     };
 
-    const handleRootClick = async (root: string) => {
-        await searchByRoot(root);
+    const handleRootClick = (root: string) => {
         setLocation(`/details/${root}/root/search`);
     };
 

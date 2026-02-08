@@ -91,8 +91,7 @@ const SurahProfile: React.FC = () => {
         }
     };
 
-    const handleRootClick = async (root: string) => {
-        await searchByRoot(root);
+    const handleRootClick = (root: string) => {
         setLocation(`/details/${root}/root/search`);
     };
 
