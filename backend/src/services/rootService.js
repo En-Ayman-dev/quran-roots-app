@@ -269,6 +269,11 @@ class RootService {
   calculateStatistics(searchResult) {
     const { ayahs, totalOccurrences } = searchResult;
 
+    // Ensure we have a safe numeric totalOccurrences (fallback compute if missing/invalid)
+    const safeTotalOccurrences = (typeof totalOccurrences === 'number' && isFinite(totalOccurrences))
+      ? totalOccurrences
+      : ayahs.reduce((sum, a) => sum + (a.rootCount || 0), 0);
+
     const surahDistribution = {};
     const accompanyingRoots = {};
     const juzDistribution = {};
@@ -369,7 +374,7 @@ class RootService {
       .slice(0, 15);
 
     const nodes = [
-      { id: targetRoot, group: 1, radius: 20 + (totalOccurrences / 5) } // Main node
+      { id: targetRoot, group: 1, radius: 20 + (safeTotalOccurrences / 5) } // Main node
     ];
 
     sortedAccompanyingRoots.forEach(([root, count]) => {
@@ -432,15 +437,18 @@ class RootService {
       }
     }
 
+    // Safe average calculation (avoid division by zero / NaN)
+    const avg = (ayahs.length > 0 && isFinite(safeTotalOccurrences)) ? (safeTotalOccurrences / ayahs.length) : 0;
+
     return {
-      totalOccurrences,
+      totalOccurrences: safeTotalOccurrences,
       totalAyahs: ayahs.length,
       uniqueSurahs: Object.keys(surahDistribution).length,
       surahDistribution,
       topAccompanyingRoots: sortedAccompanyingRoots,
       juzDistribution,
       pageDistribution,
-      averageOccurrencesPerAyah: (totalOccurrences / ayahs.length).toFixed(2),
+      averageOccurrencesPerAyah: avg.toFixed(2),
       // Enhanced Metrics
       forms: sortedForms,
       timeline: sortedTimeline,
