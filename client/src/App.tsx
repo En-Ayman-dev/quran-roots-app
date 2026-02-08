@@ -27,6 +27,7 @@ function Router() {
 }
 
 import { Analytics } from "@vercel/analytics/react";
+import { MainLayout } from "./components/layout/MainLayout";
 
 function App() {
   return (
@@ -35,7 +36,9 @@ function App() {
         <QuranProvider>
           <TooltipProvider>
             <Toaster />
-            <Router />
+            <MainLayout>
+              <Router />
+            </MainLayout>
             <Analytics />
           </TooltipProvider>
         </QuranProvider>

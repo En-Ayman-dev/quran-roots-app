@@ -194,7 +194,7 @@ const DetailView: React.FC = () => {
     return (
         <div dir="rtl" className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
             {/* Header */}
-            <header className="sticky top-0 z-[100] w-full backdrop-blur-xl bg-background/80 border-b border-white/5 shadow-2xl shadow-primary/5">
+            <header className="sticky top-16 z-30 w-full backdrop-blur-xl bg-background/80 border-b border-border shadow-sm">
                 <div className="container flex h-16 items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Button variant="ghost" size="sm" onClick={handleBack} className="hover:bg-primary/10">

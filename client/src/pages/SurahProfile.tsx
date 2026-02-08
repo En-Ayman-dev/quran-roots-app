@@ -125,7 +125,7 @@ const SurahProfile: React.FC = () => {
                         animate={{ y: 0, opacity: 1 }}
                         exit={{ y: -100, opacity: 0 }}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                        className="fixed top-0 left-0 right-0 z-50 h-16 bg-background/80 backdrop-blur-md border-b border-border shadow-sm flex items-center justify-between px-4 lg:px-8"
+                        className="fixed top-16 left-0 right-0 z-30 h-14 bg-background/80 backdrop-blur-md border-b border-border shadow-sm flex items-center justify-between px-4 lg:px-8"
                     >
                         <div className="flex items-center gap-4">
                             <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground hover:text-primary">

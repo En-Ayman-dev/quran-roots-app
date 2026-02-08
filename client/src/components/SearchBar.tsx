@@ -6,10 +6,9 @@ import { Search } from 'lucide-react';
 
 interface SearchBarProps {
   size?: 'small' | 'medium' | 'large';
-  showRecent?: boolean;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', showRecent = true }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large' }) => {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -136,35 +135,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', showRecent
           </Button>
         </div>
 
-        {showRecent && recentSearches.length > 0 && !showSuggestions && (
-          <div className="space-y-2 animate-in fade-in">
-            <p className="text-sm text-muted-foreground text-right">عمليات البحث الأخيرة:</p>
-            <div className="flex flex-wrap gap-2 justify-end">
-              {recentSearches.slice(0, 5).map((search, index) => (
-                <div
-                  key={index}
-                  className="flex items-center bg-secondary/50 rounded-full pl-1 pr-3 py-1 border border-transparent hover:border-primary/20 transition-all group"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleSuggestionClick(search)}
-                    className="text-secondary-foreground hover:text-primary transition-colors text-sm"
-                  >
-                    {search}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => { e.stopPropagation(); removeRecentSearch(search); }}
-                    className="ml-2 p-0.5 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors opacity-0 group-hover:opacity-100"
-                    aria-label="حذف"
-                  >
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </form>
     </div>
   );
