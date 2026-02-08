@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
-import { API_BASE_URL } from '../config/api';
+import { apiClient } from '../lib/apiClient';
 
 interface Token {
   pos: number;
@@ -76,13 +76,12 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Static Index State
   const [wordIndex, setWordIndex] = useState<{ roots: string[]; words: Record<string, string> } | null>(null);
 
-  // Load Static Index on Mount
+  // Load Static Index on Mount from Secure Endpoint
   React.useEffect(() => {
-    fetch('/word_index.json')
-      .then(res => res.json())
+    apiClient.get<{ roots: string[]; words: Record<string, string> }>('resources/word-index')
       .then(data => {
         setWordIndex(data);
-        console.log("✅ Word Index Loaded:", data.roots.length, "roots");
+        console.log("✅ Word Index Loaded Securely:", data.roots.length, "roots");
       })
       .catch(err => console.error("❌ Failed to load word index:", err));
   }, []);
@@ -124,11 +123,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     // Fallback to API if index not loaded yet
     try {
-      const res = await fetch(`${API_BASE_URL}/api/search/suggest?q=${encodeURIComponent(query.trim())}`);
-      if (res.ok) {
-        return await res.json();
-      }
-      return [];
+      return await apiClient.get<string[]>(`search/suggest?q=${encodeURIComponent(query.trim())}`);
     } catch (e) {
       console.error('Suggestion fetch error', e);
       return [];
@@ -146,27 +141,13 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     try {
       // Fetch results from backend
-      const resultsResponse = await fetch(`${API_BASE_URL}/api/search/root/${encodeURIComponent(root.trim())}`);
-
-      if (!resultsResponse.ok) {
-        if (resultsResponse.status === 404) {
-          setSearchResults({ root: root.trim(), ayahs: [], totalOccurrences: 0 });
-          setStatistics(null);
-          return;
-        }
-        throw new Error('فشل الاتصال بالخادم');
-      }
-
-      const resultsData = await resultsResponse.json();
+      const resultsData = await apiClient.get<SearchResult>(`search/root/${encodeURIComponent(root.trim())}`);
       setSearchResults(resultsData);
 
       // Fetch statistics
       try {
-        const statsResponse = await fetch(`${API_BASE_URL}/api/search/statistics/${encodeURIComponent(root.trim())}`);
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json();
-          setStatistics(statsData.statistics);
-        }
+        const statsData = await apiClient.get<{ statistics: Statistics }>(`search/statistics/${encodeURIComponent(root.trim())}`);
+        setStatistics(statsData.statistics);
       } catch (statsErr) {
         console.error('Failed to fetch statistics:', statsErr);
         // Don't fail the whole search if stats fail
@@ -178,6 +159,14 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem('recentSearches', JSON.stringify(updated));
     } catch (err) {
       console.error('Search error:', err);
+      const isNotFoundError = err instanceof Error && err.message.includes('404');
+
+      if (isNotFoundError) {
+        setSearchResults({ root: root.trim(), ayahs: [], totalOccurrences: 0 });
+        setStatistics(null);
+        return;
+      }
+
       const errorMessage = err instanceof Error ? err.message : 'حدث خطأ في البحث';
       setError(errorMessage);
     } finally {

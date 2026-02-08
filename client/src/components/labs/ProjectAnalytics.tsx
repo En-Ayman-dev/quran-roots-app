@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { API_BASE_URL } from '../../config/api';
+import { apiClient } from '../../lib/apiClient';
 import { useLocation } from 'wouter';
 import { useQuran } from '../../contexts/QuranContext';
 import { motion } from 'framer-motion';
@@ -40,11 +40,8 @@ export const ProjectAnalytics: React.FC = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const response = await fetch(`${API_BASE_URL}/api/statistics/global`);
-                if (!response.ok) {
-                    throw new Error('Failed to fetch statistics');
-                }
-                const result = await response.json();
+                // apiClient base URL already includes '/api'
+                const result = await apiClient.get<{ success: boolean; data: GlobalStats }>('statistics/global');
                 if (result.success) {
                     setStats(result.data);
                 } else {

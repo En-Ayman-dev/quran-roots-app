@@ -83,17 +83,16 @@ const cors = require('cors');
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+// const rateLimit = require('express-rate-limit'); // Temporarily disabled due to install issues
+const path = require('path');
 
 const app = express();
 
-// Middleware
-app.use(helmet());
-app.use(compression());
-app.use(morgan('dev'));
+// Middleware: CORS (MUST BE FIRST)
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl requests)
+      // Allow requests with no origin (like curl) IF they pass source verification
       if (!origin) return callback(null, true);
 
       const allowedOrigins = ['http://localhost:5173', 'http://localhost:3000'];
@@ -109,8 +108,45 @@ app.use(
     credentials: true,
   })
 );
+
+// Security Middleware: Helmet
+app.use(helmet());
+
+// Security Middleware: Source Verification
+const verifySource = (req, res, next) => {
+  // Allow health check and preflight OPTIONS without header
+  if (req.path === '/health' || req.path === '/api/health' || req.method === 'OPTIONS') return next();
+
+  const appSource = req.headers['x-app-source'];
+  const expectedSource = 'quran-roots-client-v1'; // This should match frontend
+
+  if (appSource !== expectedSource) {
+    // Log unauthorized attempts (optional: use a proper logger)
+    console.warn(`Unauthorized access attempt from IP: ${req.ip} - Path: ${req.path}`);
+    return res.status(403).json({ error: 'Access Denied: Unauthorized Source' });
+  }
+  next();
+};
+
+app.use(verifySource);
+
+// Middleware Common
+app.use(compression());
+app.use(morgan('dev'));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Secure Static Resource Endpoint
+app.get('/api/resources/word-index', (req, res) => {
+  const filePath = path.join(__dirname, 'data', 'word_index.json');
+  res.sendFile(filePath, (err) => {
+    if (err) {
+      console.error('Error serving word index:', err);
+      res.status(500).json({ error: 'Failed to load resource' });
+    }
+  });
+});
 
 // Import routes
 const searchRoutes = require('./src/routes/searchRoutes');
@@ -128,7 +164,7 @@ app.use('/api/ayah', ayahRoutes);
 app.use('/api/surahs', surahRoutes);
 app.use('/api/statistics', statisticsRoutes);
 
-// Health check endpoint
+// Health check endpoint (Publicly accessible logically, but protected by verifySource exception above)
 app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
