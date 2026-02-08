@@ -200,7 +200,7 @@ const DetailView: React.FC = () => {
     }
 
     return (
-        <div dir="rtl" className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
+        <div className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
 
             {/* Navigation Header (Breadcrumbs) */}
             <header className="sticky top-16 z-30 w-full backdrop-blur-xl bg-background/80 border-b border-border shadow-sm">
@@ -237,7 +237,7 @@ const DetailView: React.FC = () => {
             </header>
 
             <main className="container pt-12 animate-in fade-in slide-in-from-bottom-6 duration-700 max-w-6xl mx-auto">
-                <div className="mb-8 text-center md:text-right">
+                <div className="mb-8 text-center md:text-start">
                     <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">{title}</h1>
                     <p className="text-muted-foreground">{description}</p>
                 </div>
@@ -261,12 +261,12 @@ const DetailView: React.FC = () => {
                 <div className="sticky top-20 z-40 bg-background/80 backdrop-blur-md p-4 rounded-xl border border-primary/10 mb-8 flex flex-col md:flex-row gap-4 justify-between items-center shadow-lg">
                     {/* Search */}
                     <div className="relative w-full md:w-96">
-                        <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                        <Search className="absolute end-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             placeholder="ابحث في نص الآيات (بدون تشكيل)..."
-                            className="pr-9 bg-secondary/5 border-primary/10 focus-visible:ring-primary/20"
+                            className="pe-9 bg-secondary/5 border-primary/10 focus-visible:ring-primary/20"
                         />
                     </div>
 

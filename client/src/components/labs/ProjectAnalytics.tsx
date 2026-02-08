@@ -19,7 +19,7 @@ interface GlobalStats {
     lexicalDensity: { surah_no: number; density: number; distinct_roots: number }[];
 }
 
-export const ProjectAnalytics: React.FC = () => {
+export const ProjectAnalytics: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
     const [stats, setStats] = useState<GlobalStats | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -30,10 +30,17 @@ export const ProjectAnalytics: React.FC = () => {
 
     const goToSurah = (surahNo: number) => {
         setLocation(`/surah/${surahNo}`);
+        if (onNavigate) onNavigate();
     };
 
     const handleRootClick = (root: string) => {
         setLocation(`/details/${root}/root/search`);
+        if (onNavigate) onNavigate();
+    };
+
+    const handleMorphologyClick = (len: number) => {
+        setLocation(`/morphology/${len}`);
+        if (onNavigate) onNavigate();
     };
 
     useEffect(() => {
@@ -117,7 +124,7 @@ export const ProjectAnalytics: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. Unique DNA (Unique Roots per Surah) */}
                 <Card className="border-primary/10 h-full overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
+                    <div className="absolute top-0 end-0 p-3 opacity-10 pointer-events-none">
                         <Fingerprint className="w-24 h-24 text-primary" />
                     </div>
                     <CardHeader>
@@ -159,7 +166,7 @@ export const ProjectAnalytics: React.FC = () => {
 
                 {/* 2. Top Roots (The Pillars) */}
                 <Card className="border-primary/10 h-full overflow-hidden relative">
-                    <div className="absolute top-0 right-0 p-3 opacity-10 pointer-events-none">
+                    <div className="absolute top-0 end-0 p-3 opacity-10 pointer-events-none">
                         <Anchor className="w-24 h-24 text-blue-500" />
                     </div>
                     <CardHeader>
@@ -248,11 +255,11 @@ export const ProjectAnalytics: React.FC = () => {
                                     <div className="w-8 font-bold text-muted-foreground text-xs group-hover:text-primary transition-colors">#{item.surah_no}</div>
                                     <div className="flex-1 h-2 bg-secondary/30 rounded-full overflow-hidden relative">
                                         <div
-                                            className="absolute top-0 left-0 h-full bg-green-500/70"
+                                            className="absolute top-0 start-0 h-full bg-green-500/70"
                                             style={{ width: `${item.density * 100}%` }}
                                         />
                                     </div>
-                                    <div className="w-12 text-left font-mono text-xs text-green-600 dark:text-green-400 font-bold">{(item.density * 100).toFixed(1)}%</div>
+                                    <div className="w-12 text-end font-mono text-xs text-green-600 dark:text-green-400 font-bold">{(item.density * 100).toFixed(1)}%</div>
                                 </div>
                             ))}
                         </div>
@@ -273,7 +280,7 @@ export const ProjectAnalytics: React.FC = () => {
                     <CardContent className="flex items-center justify-center p-8">
                         <div className="flex items-end gap-8 h-[180px] w-full justify-center">
                             {stats.rootLength?.map((item, i) => (
-                                <div key={i} className="flex flex-col items-center gap-3 group cursor-pointer w-1/4" onClick={() => setLocation(`/morphology/${item.len}`)}>
+                                <div key={i} className="flex flex-col items-center gap-3 group cursor-pointer w-1/4" onClick={() => handleMorphologyClick(item.len)}>
                                     <div className="text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity translate-y-2 group-hover:translate-y-0 text-primary">{item.count}</div>
                                     <div
                                         className="w-full max-w-[60px] bg-gradient-to-t from-primary/10 to-primary/50 border-t-2 border-primary/50 rounded-t-lg transition-all duration-500 group-hover:to-primary/70 relative hover:scale-105"

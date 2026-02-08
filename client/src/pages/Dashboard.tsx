@@ -67,7 +67,7 @@ const CustomBarChart = ({ data, onClick }: { data: { label: string, value: numbe
                             className="h-full bg-gradient-to-l from-primary to-primary/60 rounded-full"
                         />
                     </div>
-                    <div className="w-8 text-left font-bold text-primary text-xs">{d.value}</div>
+                    <div className="w-8 text-end font-bold text-primary text-xs">{d.value}</div>
                 </div>
             ))}
         </div>
@@ -129,7 +129,7 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div dir="rtl" className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
+        <div className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
 
             {/* Navigation Header */}
             <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-background/50 border-b border-white/5">
@@ -183,7 +183,7 @@ const Dashboard: React.FC = () => {
                             transition={{ delay: i * 0.1 }}
                             className="group relative overflow-hidden bg-card/50 backdrop-blur-sm border border-border/50 p-6 rounded-2xl hover:bg-card hover:border-primary/20 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5"
                         >
-                            <div className={`absolute top-0 right-0 p-3 rounded-bl-2xl ${stat.bg} ${stat.text} opacity-20 group-hover:opacity-100 transition-opacity`}>
+                            <div className={`absolute top-0 end-0 p-3 rounded-bs-2xl ${stat.bg} ${stat.text} opacity-20 group-hover:opacity-100 transition-opacity`}>
                                 <stat.icon className="w-5 h-5" />
                             </div>
                             <div className="mt-2">
@@ -236,11 +236,11 @@ const Dashboard: React.FC = () => {
 
                             <div className="flex-shrink-0">
                                 <Button
-                                    className="bg-amber-500 hover:bg-amber-600 text-black font-bold shadow-lg shadow-amber-500/20 transition-all hover:scale-105"
+                                    className="bg-amber-500 hover:bg-amber-600 text-black font-bold shadow-lg shadow-amber-500/20 transition-all hover:scale-105 gap-2"
                                     onClick={() => handleNavigation('surah', centerOfGravity.surahName, parseInt(centerOfGravity.id))}
                                 >
                                     عرض السياق
-                                    <ArrowRight className="w-4 h-4 mr-2" />
+                                    <ArrowRight className="w-4 h-4" />
                                 </Button>
                             </div>
                         </div>

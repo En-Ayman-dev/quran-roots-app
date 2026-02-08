@@ -37,7 +37,12 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 
     return (
         <div className="min-h-screen bg-background font-sans antialiased">
-            <Header onMenuClick={() => setIsSidebarOpen(true)} />
+            <div style={{ height: '80px' }} />
+            <Header
+                onMenuClick={() => setIsSidebarOpen(true)}
+                isOpen={isSidebarOpen}
+                className={currentLab ? "opacity-0 pointer-events-none" : ""}
+            />
             <div className="flex-1">
                 {children}
             </div>
@@ -62,24 +67,55 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
 };
 
 // Helper component to render the active lab
-import { X } from 'lucide-react';
+import { X, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ProjectAnalytics } from '@/components/labs/ProjectAnalytics'; // Ensure this path is correct
 
 const LabModal = ({ labId, onClose }: { labId: string; onClose: () => void }) => {
     return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-background/80 backdrop-blur-md animate-in fade-in duration-300">
-            <div className="w-full max-w-4xl bg-card border border-border shadow-2xl rounded-2xl max-h-[90vh] overflow-y-auto relative flex flex-col">
-                <div className="sticky top-0 bg-card/80 backdrop-blur border-b border-border p-4 flex justify-between items-center z-10">
-                    <h2 className="text-xl font-bold">المختبرات</h2>
-                    <Button variant="ghost" size="icon" onClick={onClose}>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-background/60 backdrop-blur-[2px] animate-in fade-in duration-300">
+            {/* Overlay click to close */}
+            <div className="absolute inset-0" onClick={onClose} />
+
+            {/* Modal Container */}
+            <div className="w-full max-w-5xl mx-4 my-8 md:my-12 h-[85vh] md:h-[90vh] bg-background/80 backdrop-blur-xl border border-white/20 shadow-2xl rounded-3xl relative flex flex-col overflow-hidden ring-1 ring-black/5 dark:ring-white/10">
+
+                {/* Decorative Pattern Background */}
+                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')]" />
+
+                {/* Header */}
+                <div className="sticky top-0 bg-background/50 backdrop-blur-md border-b border-border/50 p-4 md:p-6 flex justify-between items-center z-10 shrink-0">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-primary/10 rounded-xl text-primary">
+                            <Activity className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-bold font-quran leading-none">مختبر التحليلات</h2>
+                            <p className="text-xs text-muted-foreground mt-1">استعراض البيانات القرآنية المتقدمة</p>
+                        </div>
+                    </div>
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={onClose}
+                        className="rounded-full hover:bg-destructive/10 hover:text-destructive transition-colors h-10 w-10"
+                    >
                         <X className="w-5 h-5" />
                     </Button>
                 </div>
-                <div className="p-6">
-                    {labId === 'project-analytics' && <ProjectAnalytics />}
+
+                {/* Content Area */}
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 relative z-0 scrollbar-thin scrollbar-thumb-primary/10 scrollbar-track-transparent">
+                    {labId === 'project-analytics' && (
+                        <div className="animate-in slide-in-from-bottom-4 duration-500">
+                            <ProjectAnalytics onNavigate={onClose} />
+                        </div>
+                    )}
                     {/* Add other labs here */}
                 </div>
+
+                {/* Footer Gradient Fade */}
+                <div className="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-background/80 to-transparent pointer-events-none z-10" />
             </div>
         </div>
     );

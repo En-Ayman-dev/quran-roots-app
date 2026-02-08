@@ -99,9 +99,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large' }) => {
               onFocus={() => inputValue.length >= 2 && setShowSuggestions(true)}
               onBlur={() => setTimeout(() => setShowSuggestions(false), 200)} // Delay to allow click
               placeholder="أدخل الكلمة أو الجذر (مثال: المسلمين، كتب)..."
-              className={`${sizeClasses[size]} text-right dir-rtl shadow-sm focus:ring-2 focus:ring-primary/20 transition-all`}
-              dir="rtl"
-              disabled={loading}
+              className={`${sizeClasses[size]} text-start shadow-sm focus:ring-2 focus:ring-primary/20 transition-all`}
               autoComplete="off"
             />
 
@@ -115,7 +113,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large' }) => {
                       key={idx}
                       type="button"
                       onClick={() => handleSuggestionClick(suggestion)}
-                      className="w-full text-right px-4 py-2 hover:bg-muted/50 rounded-lg text-sm transition-colors flex items-center justify-between group"
+                      className="w-full text-start px-4 py-2 hover:bg-muted/50 rounded-lg text-sm transition-colors flex items-center justify-between group"
                     >
                       <span className="font-bold text-primary">{suggestion}</span>
                       <span className="text-xs text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity">تطبيق بحث</span>

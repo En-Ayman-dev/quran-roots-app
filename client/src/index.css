@@ -123,6 +123,8 @@
   body {
     @apply bg-background text-foreground;
     font-family: 'Cairo', 'Lato', sans-serif;
+    direction: rtl; /* Enforce RTL */
+    text-align: right; /* Default alignment */
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -146,6 +148,8 @@
     font-family: 'Amiri', serif;
     line-height: 2.3;
     font-feature-settings: "cv01" 1, "cv02" 1, "cv03" 1, "cv04" 1; /* Enable optional ligatures if supported */
+    direction: rtl;
+    text-align: right;
   }
 }
 

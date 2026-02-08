@@ -1,153 +1,115 @@
 import React from 'react';
-import { motion, useTime, useTransform, useReducedMotion } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface QuranLoaderProps {
     message?: string;
 }
 
 export const QuranLoader: React.FC<QuranLoaderProps> = ({ message }) => {
-    const prefersReducedMotion = useReducedMotion();
-
-    // Dynamic background effect
-    const time = useTime();
-    // Reduce rotation speed or stop it based on preference
-    const rotate = useTransform(time, [0, 40000], [0, prefersReducedMotion ? 0 : 360]);
-    const counterRotate = useTransform(time, [0, 30000], [0, prefersReducedMotion ? 0 : -360]);
-
     return (
-        <div className="flex flex-col items-center justify-center min-h-[50vh] w-full relative overflow-hidden bg-background">
+        <div className="flex flex-col items-center justify-center min-h-[60vh] w-full relative overflow-hidden bg-background font-quran selection:bg-primary/20">
 
-            {/* 1. ATMOSPHERIC BACKGROUND */}
-            <div className="absolute inset-0 z-0">
-                {/* Orbital Rings - Enhanced Visibility for Dark Mode */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] opacity-10 dark:opacity-20 pointer-events-none">
-                    <motion.div
-                        style={{ rotate }}
-                        className="w-full h-full border border-primary/20 dark:border-primary/30 rounded-full border-dashed"
-                    />
-                </div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] opacity-20 dark:opacity-30 pointer-events-none">
-                    <motion.div
-                        style={{ rotate: counterRotate }}
-                        className="w-full h-full border border-primary/30 dark:border-primary/40 rounded-full"
-                    />
-                </div>
-
-                {/* Floating Noor (Light) Particles - Reduced Motion Safe */}
-                {!prefersReducedMotion && (
-                    <div className="absolute inset-0 overflow-hidden">
-                        {[...Array(12)].map((_, i) => (
-                            <motion.div
-                                key={i}
-                                className="absolute bg-primary/20 dark:bg-primary/10 rounded-full blur-xl"
-                                style={{
-                                    width: Math.random() * 100 + 50,
-                                    height: Math.random() * 100 + 50,
-                                    top: `${Math.random() * 100}%`,
-                                    left: `${Math.random() * 100}%`,
-                                }}
-                                animate={{
-                                    y: [0, -100, 0],
-                                    scale: [1, 1.2, 1],
-                                    opacity: [0.1, 0.3, 0.1],
-                                }}
-                                transition={{
-                                    duration: 10 + Math.random() * 10,
-                                    repeat: Infinity,
-                                    ease: "easeInOut",
-                                    delay: Math.random() * 5,
-                                }}
-                            />
-                        ))}
-                    </div>
-                )}
+            {/* 1. Ambient Background Effects */}
+            <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/5 rounded-full blur-[100px] animate-pulse" />
+                <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,rgba(var(--primary-rgb),0.05),transparent_50%)]" />
             </div>
 
-            {/* 2. THE CORE EXPERIENCE */}
-            <div className="relative z-10 flex flex-col items-center">
-
-                {/* Animated Quranic Icon */}
+            {/* 2. Central Islamic Geometry (Rub el Hizb Construction) */}
+            <div className="relative z-10 mb-12">
+                {/* Outer Ring - Rotating Slow */}
                 <motion.div
-                    initial={{ scale: prefersReducedMotion ? 1 : 0, rotate: prefersReducedMotion ? 0 : -45 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", stiffness: 200, damping: 20 }}
-                    className="mb-12 relative"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 60, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 -m-8 border border-primary/10 rounded-full border-dashed"
+                />
+
+                {/* Middle Ring - Rotating Counter */}
+                <motion.div
+                    animate={{ rotate: -360 }}
+                    transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+                    className="absolute inset-0 -m-4 border border-primary/20 rounded-full opacity-50"
+                />
+
+                {/* The Star (Rub el Hizb) Container */}
+                <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    transition={{ duration: 1, ease: "backOut" }}
+                    className="relative w-24 h-24 flex items-center justify-center"
                 >
-                    <div className="absolute inset-0 bg-primary/30 blur-2xl rounded-full animate-pulse dark:bg-primary/20" />
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" className="text-primary relative z-10 drop-shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)]">
-                        <motion.path
-                            d="M12 4V2M12 22v-2M4 12H2m20 0h-2m-2.5 7.5L18 21m-12 1.5L7.5 19.5M19.5 4.5 18 6m-12-1.5L7.5 4.5"
-                            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                            initial={prefersReducedMotion ? { pathLength: 1, opacity: 1 } : { pathLength: 0, opacity: 0 }}
-                            animate={{ pathLength: 1, opacity: 1 }}
-                            transition={{ duration: 1.5, delay: 0.5 }}
-                        />
-                        <motion.circle
-                            cx="12"
-                            cy="12"
-                            r="9"
-                            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"
-                            initial={prefersReducedMotion ? { pathLength: 1 } : { pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                            transition={{ duration: 2, ease: "easeInOut" }}
-                        />
-                        <motion.path
-                            d="M12 7v5l3 3"
-                            stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
-                            initial={prefersReducedMotion ? { pathLength: 1 } : { pathLength: 0 }}
-                            animate={{ pathLength: 1 }}
-                            transition={{ duration: 1, delay: 1 }}
-                        />
-                    </svg>
-                </motion.div>
+                    {/* Shadow/Glow */}
+                    <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full" />
 
-                {/* THE VERSE - Tarteel Animation */}
-                <div className="text-center relative px-4">
+                    {/* Square 1 */}
                     <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 1 }}
-                        className="relative"
-                    >
-                        {/* Glow Effect behind text */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/10 to-transparent blur-xl h-full w-full opacity-50 dark:opacity-30" />
-
-                        <h2 className="text-4xl md:text-6xl font-bold font-quran text-foreground leading-[1.8] md:leading-[2] drop-shadow-lg relative z-10">
-                            <span className="inline-block bg-clip-text text-transparent bg-gradient-to-b from-foreground via-foreground to-primary/80 dark:to-primary">
-                                "أَوۡ زِدۡ عَلَيۡهِ وَرَتِّلِ ٱلۡقُرۡءَانَ تَرۡتِيلًا"
-                            </span>
-                        </h2>
-
-                        {/* Shimmer Effect overlay - Disabled on reduced motion */}
-                        {!prefersReducedMotion && (
-                            <motion.div
-                                className="absolute inset-0 z-20 bg-gradient-to-r from-transparent via-white/20 dark:via-white/10 to-transparent skew-x-12"
-                                style={{ x: useTransform(time, [0, 3000], ["-150%", "150%"]) }}
-                            />
-                        )}
-                    </motion.div>
-
-                    {/* Elegant Divider */}
+                        className="absolute w-16 h-16 border-2 border-primary/80 bg-background/50 backdrop-blur-sm"
+                        animate={{ rotate: [0, 90, 180, 270, 360] }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                    />
+                    {/* Square 2 (Rotated 45deg) */}
                     <motion.div
-                        initial={{ width: 0, opacity: 0 }}
-                        animate={{ width: "200px", opacity: 0.5 }}
-                        transition={{ duration: 1.5, delay: 0.5 }}
-                        className="h-px bg-gradient-to-r from-transparent via-primary to-transparent mx-auto my-8 opacity-40 dark:opacity-60"
+                        className="absolute w-16 h-16 border-2 border-primary/80 bg-background/50 backdrop-blur-sm"
+                        style={{ rotate: 45 }}
+                        animate={{ rotate: [45, 135, 225, 315, 405] }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
                     />
 
-                    {/* Animated Message */}
-                    <motion.p
-                        className="text-lg md:text-xl text-primary/80 font-amiri tracking-wide"
-                        animate={{ opacity: [0.5, 1, 0.5] }}
+                    {/* Center Dot / Core */}
+                    <motion.div
+                        className="z-10 w-3 h-3 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.8)]"
+                        animate={{ scale: [1, 1.5, 1] }}
                         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                    >
-                        {message || "جاري استحضار البيانات..."}
-                    </motion.p>
-                </div>
+                    />
+                </motion.div>
             </div>
 
-            {/* 3. Mystical Footer Decoration */}
-            <div className="absolute bottom-0 w-full h-32 bg-gradient-to-t from-background to-transparent pointer-events-none z-20" />
+            {/* 3. Typography & Messaging */}
+            <div className="relative z-10 text-center space-y-6 max-w-md px-4">
+
+                {/* Main Verse */}
+                <div className="overflow-hidden">
+                    <motion.h2
+                        initial={{ y: 40, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ duration: 0.8, delay: 0.2 }}
+                        className="text-3xl md:text-5xl font-bold text-foreground leading-normal"
+                    >
+                        وَرَتلِ القُرآنَ <span className="text-primary">تَرتِيلاً</span>
+                    </motion.h2>
+                </div>
+
+                {/* Divider Line */}
+                <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 1.5, delay: 0.5 }}
+                    className="h-px bg-gradient-to-r from-transparent via-border to-transparent mx-auto opacity-50"
+                />
+
+                {/* Status Message */}
+                <motion.p
+                    key={message} // Animate when message changes
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                    className="text-muted-foreground text-sm md:text-base font-sans tracking-wide"
+                >
+                    {message || "جاري تحميل البيانات..."}
+                </motion.p>
+
+                {/* Progress Indicators (Dots) */}
+                <div className="flex justify-center gap-1.5 mt-2">
+                    {[0, 1, 2].map((i) => (
+                        <motion.div
+                            key={i}
+                            className="w-1.5 h-1.5 bg-primary rounded-full"
+                            animate={{ opacity: [0.3, 1, 0.3], scale: [1, 1.2, 1] }}
+                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                        />
+                    ))}
+                </div>
+            </div>
         </div>
     );
 };

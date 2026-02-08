@@ -29,7 +29,7 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
         }`}
     >
       {/* Decorative side accent */}
-      <div className={`absolute right-0 top-0 bottom-0 w-1 transition-all duration-500 ${isExpanded ? 'bg-primary' : 'bg-primary/0 group-hover:bg-primary/50'}`} />
+      <div className={`absolute start-0 top-0 bottom-0 w-1 transition-all duration-500 ${isExpanded ? 'bg-primary' : 'bg-primary/0 group-hover:bg-primary/50'}`} />
 
       {/* CLICKABLE HEADER AREA */}
       <div
@@ -382,9 +382,9 @@ export const Results: React.FC = () => {
                     placeholder="ابحث ضمن النتائج (بدون تشكيل)..."
                     value={subSearch}
                     onChange={(e) => { setSubSearch(e.target.value); setVisibleCount(10); }}
-                    className="w-full bg-secondary/30 hover:bg-secondary/50 focus:bg-background border border-transparent hover:border-primary/20 focus:border-primary/50 text-right px-4 py-2.5 pl-10 rounded-xl outline-none focus:ring-2 focus:ring-primary/10 transition-all text-sm font-medium"
+                    className="w-full bg-secondary/30 hover:bg-secondary/50 focus:bg-background border border-transparent hover:border-primary/20 focus:border-primary/50 text-start px-4 py-2.5 ps-10 rounded-xl outline-none focus:ring-2 focus:ring-primary/10 transition-all text-sm font-medium"
                   />
-                  <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <div className="absolute start-3 top-1/2 -translate-y-1/2 flex items-center gap-1">
                     {subSearch && (
                       <button
                         onClick={() => setSubSearch('')}
@@ -402,10 +402,9 @@ export const Results: React.FC = () => {
                 {/* Surah Filter */}
                 <div className="relative group">
                   <select
-                    className="w-full md:w-40 appearance-none bg-secondary/50 hover:bg-secondary cursor-pointer border-transparent hover:border-primary/20 rounded-xl px-9 py-2.5 text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-primary/20 text-right dir-rtl"
+                    className="w-full md:w-40 appearance-none bg-secondary/50 hover:bg-secondary cursor-pointer border-transparent hover:border-primary/20 rounded-xl px-9 py-2.5 text-sm font-medium transition-all outline-none focus:ring-2 focus:ring-primary/20 text-start"
                     value={selectedSurah}
                     onChange={(e) => { setSelectedSurah(e.target.value); setVisibleCount(10); }}
-                    dir="rtl"
                   >
                     <option value="all">كل السور 🕌</option>
                     {availableSurahs.map(s => <option key={s} value={s}>سورة {s}</option>)}
@@ -561,7 +560,7 @@ export const Results: React.FC = () => {
       {showScrollTop && (
         <button
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-xl hover:scale-110 active:scale-90 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
+          className="fixed bottom-8 end-8 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-xl hover:scale-110 active:scale-90 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
           aria-label="العودة للأعلى"
         >
           <div className="text-xl font-bold">↑</div>

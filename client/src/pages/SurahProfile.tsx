@@ -266,7 +266,7 @@ const SurahProfile: React.FC = () => {
                                 {/* Unique DNA Card */}
                                 <div className="md:col-span-4 group">
                                     <div className="relative h-full bg-card/60 backdrop-blur-xl border border-amber-500/20 rounded-3xl overflow-hidden hover:border-amber-500/40 hover:shadow-xl hover:shadow-amber-500/5 transition-all p-6">
-                                        <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/10 rounded-bl-[100px] -z-10" />
+                                        <div className="absolute top-0 end-0 w-32 h-32 bg-amber-500/10 rounded-be-[100px] -z-10" />
 
                                         <div className="flex items-center gap-3 mb-6">
                                             <div className="p-3 bg-amber-500/10 rounded-2xl text-amber-600 dark:text-amber-500">
@@ -365,7 +365,7 @@ const SurahProfile: React.FC = () => {
                                 <div className={`relative bg-card/40 backdrop-blur-sm border ${isReadingMode ? 'border-transparent p-8 md:p-12 shadow-none' : 'border-border p-8 rounded-[2rem] hover:border-primary/30 hover:shadow-xl hover:bg-card/60'} transition-all duration-300 group`}>
 
                                     {/* Ayah Number Badge */}
-                                    <div className="absolute top-6 left-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-6 start-6 opacity-30 group-hover:opacity-100 transition-opacity">
                                         <div className="w-8 h-8 flex items-center justify-center rounded-full border border-primary/20 text-primary text-xs font-bold font-mono bg-primary/5">
                                             {ayah.ayah_no}
                                         </div>
@@ -419,7 +419,7 @@ const SurahProfile: React.FC = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={scrollToTop}
-                        className="fixed bottom-6 right-6 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-primary/50 transition-all shadow-primary/20 border border-primary/20"
+                        className="fixed bottom-6 end-6 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-primary/50 transition-all shadow-primary/20 border border-primary/20"
                     >
                         <ArrowUpRight className="w-6 h-6 -rotate-45" />
                     </motion.button>

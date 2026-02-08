@@ -145,7 +145,7 @@ const RootLengthExplorer: React.FC = () => {
     }
 
     return (
-        <div dir="rtl" className="min-h-screen bg-background text-foreground selection:bg-primary/20 pb-20 font-sans">
+        <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 pb-20 font-sans">
 
             {/* Header Background */}
             <div className="fixed top-0 left-0 right-0 h-[400px] bg-gradient-to-b from-primary/5 via-background to-background -z-10 pointer-events-none" />
@@ -159,10 +159,10 @@ const RootLengthExplorer: React.FC = () => {
                 >
                     <Button
                         variant="ghost"
-                        className="hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors"
+                        className="hover:bg-primary/5 text-muted-foreground hover:text-primary transition-colors gap-2"
                         onClick={() => setLocation('/dashboard')}
                     >
-                        <ArrowRight className="w-4 h-4 ml-2" />
+                        <ArrowRight className="w-4 h-4" />
                         عودة للوحة التحكم
                     </Button>
                 </motion.div>
@@ -232,10 +232,10 @@ const RootLengthExplorer: React.FC = () => {
                             variant="ghost"
                             size="sm"
                             onClick={() => setLocation('/dashboard')}
-                            className="text-muted-foreground hover:text-primary hover:bg-primary/5 shrink-0"
+                            className="text-muted-foreground hover:text-primary hover:bg-primary/5 shrink-0 gap-2"
                             title="عودة للوحة التحكم"
                         >
-                            <ArrowRight className="w-5 h-5 md:ml-2" />
+                            <ArrowRight className="w-5 h-5" />
                             <span className="hidden md:inline font-bold">عودة</span>
                         </Button>
 
@@ -266,7 +266,7 @@ const RootLengthExplorer: React.FC = () => {
                                 className="group cursor-pointer"
                             >
                                 <div className="h-full bg-card hover:bg-primary/5 border border-border hover:border-primary/30 rounded-2xl p-6 flex flex-col items-center justify-center gap-4 transition-all duration-300 hover:shadow-xl hover:-translate-y-1 relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    <div className="absolute top-0 start-0 w-full h-1 bg-gradient-to-l from-transparent via-primary/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
                                     <h3 className="text-3xl font-bold font-quran text-foreground group-hover:text-primary transition-colors">
                                         {item.root}
@@ -309,7 +309,7 @@ const RootLengthExplorer: React.FC = () => {
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.9 }}
                         onClick={scrollToTop}
-                        className="fixed bottom-8 right-8 z-50 p-4 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-primary/50 transition-all shadow-primary/20 border border-primary/20"
+                        className="fixed bottom-8 end-8 z-50 p-4 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-primary/50 transition-all shadow-primary/20 border border-primary/20"
                     >
                         <ArrowUpRight className="w-6 h-6 -rotate-45" />
                     </motion.button>

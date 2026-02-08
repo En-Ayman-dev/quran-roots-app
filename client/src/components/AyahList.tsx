@@ -53,7 +53,7 @@ export const AyahList: React.FC<AyahListProps> = ({ ayahs, highlightQuery, title
                         >
                             <Card className={`transition-all duration-300 ${isFocused ? 'ring-2 ring-amber-500 bg-amber-500/5 shadow-[0_0_30px_-5px_rgba(245,158,11,0.3)]' : 'bg-card/50 backdrop-blur border-primary/10 hover:border-primary/30'}`}>
                                 {isFocused && (
-                                    <div className="bg-amber-500 text-black text-xs font-bold px-3 py-1 inline-block rounded-br-lg">
+                                    <div className="bg-amber-500 text-black text-xs font-bold px-3 py-1 inline-block rounded-be-lg">
                                         مركز ثقل الجذر
                                     </div>
                                 )}
@@ -68,7 +68,7 @@ export const AyahList: React.FC<AyahListProps> = ({ ayahs, highlightQuery, title
                                             </span>
                                         </div>
                                     </div>
-                                    <p className="text-lg md:text-xl font-quran leading-loose text-foreground dir-rtl">
+                                    <p className="text-lg md:text-xl font-quran leading-loose text-foreground">
                                         {/* 
                            For a truly robust highlight we'd use the token data, 
                            but for this drill-down plain text matching often suffices 
