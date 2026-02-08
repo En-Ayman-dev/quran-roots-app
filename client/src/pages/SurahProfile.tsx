@@ -1,12 +1,20 @@
 import React, { useEffect, useState } from 'react';
 import { apiClient } from '../lib/apiClient';
-import { useLocation, useRoute } from 'wouter';
+import { useLocation, useRoute, Link } from 'wouter';
 import { useQuran } from '../contexts/QuranContext';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, BookOpen, Sparkles, Anchor, Activity, Eye, ArrowUpRight } from 'lucide-react';
+import { ArrowRight, BookOpen, Sparkles, Anchor, Activity, Eye, ArrowUpRight, Search, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QuranLoader } from '@/components/ui/QuranLoader';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 interface Ayah {
     surah_no: number;
@@ -128,17 +136,36 @@ const SurahProfile: React.FC = () => {
                         className="fixed top-16 left-0 right-0 z-30 h-14 bg-background/80 backdrop-blur-md border-b border-border shadow-sm flex items-center justify-between px-4 lg:px-8"
                     >
                         <div className="flex items-center gap-4">
-                            <Button variant="ghost" size="sm" onClick={handleBack} className="text-muted-foreground hover:text-primary">
-                                <ArrowRight className="w-4 h-4 ml-2" />
-                                <span className="hidden sm:inline">عودة</span>
-                            </Button>
-                            <div className="h-6 w-px bg-border mx-2 hidden sm:block"></div>
-                            <div className="flex items-center gap-2">
-                                <span className="font-quran text-xl text-primary">{data.name.replace('سورة ', '')}</span>
-                                <Badge variant="outline" className="text-[10px] px-2 h-5 hidden sm:flex">
-                                    {data.number}
-                                </Badge>
-                            </div>
+                            <Breadcrumb>
+                                <BreadcrumbList>
+                                    <BreadcrumbItem>
+                                        <BreadcrumbLink asChild className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                                            <Link href="/">
+                                                <Search className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">الرئيسية</span>
+                                            </Link>
+                                        </BreadcrumbLink>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbSeparator className="rtl:rotate-180" />
+                                    <BreadcrumbItem>
+                                        <BreadcrumbLink asChild className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                                            <Link href="/dashboard">
+                                                <LayoutDashboard className="w-3.5 h-3.5" />
+                                                <span className="hidden sm:inline">لوحة التحكم</span>
+                                            </Link>
+                                        </BreadcrumbLink>
+                                    </BreadcrumbItem>
+                                    <BreadcrumbSeparator className="rtl:rotate-180" />
+                                    <BreadcrumbItem>
+                                        <BreadcrumbPage className="font-bold text-primary flex items-center gap-2">
+                                            <span className="font-quran text-lg">{data.name.replace('سورة ', '')}</span>
+                                            <Badge variant="outline" className="text-[10px] px-1.5 h-4 hidden sm:flex">
+                                                {data.number}
+                                            </Badge>
+                                        </BreadcrumbPage>
+                                    </BreadcrumbItem>
+                                </BreadcrumbList>
+                            </Breadcrumb>
                         </div>
 
                         <div className="flex items-center gap-2">
@@ -206,14 +233,7 @@ const SurahProfile: React.FC = () => {
                         transition={{ delay: 0.8 }}
                         className="flex items-center justify-center gap-4 mt-8"
                     >
-                        <Button
-                            onClick={handleBack}
-                            variant="ghost"
-                            className="bg-transparent hover:bg-secondary text-muted-foreground border border-border rounded-full px-6"
-                        >
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                            عودة
-                        </Button>
+
                         <Button
                             onClick={() => setIsReadingMode(!isReadingMode)}
                             className={`rounded-full px-6 border transition-all duration-500 ${isReadingMode

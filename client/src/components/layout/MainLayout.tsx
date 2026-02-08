@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Header } from './Header';
 import { AppSidebar } from './AppSidebar';
 import { Toaster } from '@/components/ui/sonner';
+import { useLocation } from 'wouter';
 
 interface MainLayoutProps {
     children: React.ReactNode;
@@ -9,6 +10,7 @@ interface MainLayoutProps {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const [location] = useLocation(); // Hook to detect route changes
     // We need to manage lab interactions. 
     // Since labs are currently tight to the Home page logic (overlay), 
     // we might need to expose the lab state or let the Sidebar control it via a context.

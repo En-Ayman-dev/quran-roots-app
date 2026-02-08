@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useRoute, useLocation } from 'wouter';
+import { useRoute, useLocation, Link } from 'wouter';
 import { useQuran } from '../contexts/QuranContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -10,6 +10,14 @@ import { Card, CardContent } from '../components/ui/card';
 import { motion } from 'framer-motion';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { QuranLoader } from '../components/ui/QuranLoader';
+import {
+    Breadcrumb,
+    BreadcrumbItem,
+    BreadcrumbLink,
+    BreadcrumbList,
+    BreadcrumbPage,
+    BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb"
 
 // Helper to remove Tashkeel
 const removeTashkeel = (text: string) => {
@@ -193,22 +201,38 @@ const DetailView: React.FC = () => {
 
     return (
         <div dir="rtl" className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
-            {/* Header */}
+
+            {/* Navigation Header (Breadcrumbs) */}
             <header className="sticky top-16 z-30 w-full backdrop-blur-xl bg-background/80 border-b border-border shadow-sm">
-                <div className="container flex h-16 items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Button variant="ghost" size="sm" onClick={handleBack} className="hover:bg-primary/10">
-                            <ArrowRight className="w-4 h-4 ml-2" />
-                            عودة
-                        </Button>
-                        <span className="text-muted-foreground/50">|</span>
-                        <div className="flex items-center gap-2 text-sm">
-                            <LayoutDashboard className="w-4 h-4 text-muted-foreground" />
-                            <span className="text-muted-foreground hidden sm:inline-block">لوحة التحكم</span>
-                            <span className="text-muted-foreground/50 hidden sm:inline-block">/</span>
-                            <span className="font-bold text-primary">{decodedRoot}</span>
-                        </div>
-                    </div>
+                <div className="container flex h-14 items-center">
+                    <Breadcrumb>
+                        <BreadcrumbList>
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                                    <Link href="/">
+                                        <Search className="w-3.5 h-3.5" />
+                                        <span>الرئيسية</span>
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="rtl:rotate-180" />
+                            <BreadcrumbItem>
+                                <BreadcrumbLink asChild className="flex items-center gap-1 hover:text-primary transition-colors cursor-pointer">
+                                    <Link href="/dashboard">
+                                        <LayoutDashboard className="w-3.5 h-3.5" />
+                                        <span>لوحة التحكم</span>
+                                    </Link>
+                                </BreadcrumbLink>
+                            </BreadcrumbItem>
+                            <BreadcrumbSeparator className="rtl:rotate-180" />
+                            <BreadcrumbItem>
+                                <BreadcrumbPage className="font-bold text-primary flex items-center gap-1">
+                                    <Hash className="w-3.5 h-3.5" />
+                                    <span>{decodedRoot}</span>
+                                </BreadcrumbPage>
+                            </BreadcrumbItem>
+                        </BreadcrumbList>
+                    </Breadcrumb>
                 </div>
             </header>
 
