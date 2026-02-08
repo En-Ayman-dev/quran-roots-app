@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://quran-roots-app.vercel.app/sitemap.xml

@@ -150,7 +150,7 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const plugins = [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [react(), tailwindcss(), jsxLocPlugin() /*, vitePluginManusRuntime(), vitePluginManusDebugCollector() */];
 
 export default defineConfig({
   plugins,
@@ -169,12 +169,17 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom', 'wouter'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot', 'lucide-react', 'framer-motion'],
-          charts: ['recharts']
-        }
-      }
+        // manualChunks removed to let Vite handling splitting automatically
+        manualChunks: undefined,
+      },
+      external: [
+        'express',
+        'sqlite3',
+        'path',
+        'fs',
+        'os',
+        'crypto',
+      ]
     }
   },
   server: {

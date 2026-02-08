@@ -13,9 +13,93 @@ const normalizeArabic = (text: string) => {
   return text.replace(/[\u064B-\u065F\u0670\u0640]/g, "");
 };
 
+// --- Helper: Highlight Text Component (Robust Normalized Matching) ---
+const HighlightableText: React.FC<{
+  text: string;
+  mainWords: string[];
+  secondaryWords: string[];
+  subSearch: string;
+}> = ({ text, mainWords, secondaryWords, subSearch }) => {
+  if (!text) return null;
+
+  // COLOR PALETTE (High Contrast Text Only - No Backgrounds)
+  // Main Root: Vivid Blue
+  const STYLE_MAIN = "text-blue-600 dark:text-blue-400 font-extrabold";
+  // Secondary Root (Filter): Vivid Fuchsia
+  const STYLE_SECONDARY = "text-fuchsia-600 dark:text-fuchsia-400 font-extrabold";
+  // Sub-search General: Vivid Emerald
+  const STYLE_GENERAL = "text-emerald-600 dark:text-emerald-400 font-bold";
+
+  // Normalize helper
+  const normalize = (t: string) => t.replace(/[\u064B-\u065F\u0670\u0640]/g, "");
+
+  // Prepare Sets for O(1) lookup of NORMALIZED target words
+  const mainSet = new Set(mainWords.map(w => normalize(w)));
+  const secondarySet = new Set(secondaryWords.map(w => normalize(w)));
+
+  const cleanSub = subSearch ? normalize(subSearch.trim()) : "";
+  const subIsRoot = mainSet.has(cleanSub) || secondarySet.has(cleanSub);
+
+  // Split text by space to isolate visual words
+  const words = text.split(' ');
+
+  return (
+    <>
+      {words.map((word, i) => {
+        const normWord = normalize(word);
+        // Adds space between words, but not after the last one
+        const suffix = i < words.length - 1 ? " " : "";
+
+        // Priority 1: Main Root Match
+        if (mainSet.has(normWord)) {
+          return <span key={i} className={STYLE_MAIN}>{word}{suffix}</span>;
+        }
+
+        // Priority 2: Secondary Root Match
+        if (secondarySet.has(normWord)) {
+          return <span key={i} className={STYLE_SECONDARY}>{word}{suffix}</span>;
+        }
+
+        // Priority 3: SubSearch General Match
+        // Match if the word contains the search term (e.g. "يعلمون" contains "علم")
+        if (cleanSub && cleanSub.length > 1 && !subIsRoot && normWord.includes(cleanSub)) {
+          return <span key={i} className={STYLE_GENERAL}>{word}{suffix}</span>;
+        }
+
+        // Default: Render word normally
+        return <span key={i}>{word}{suffix}</span>;
+      })}
+    </>
+  );
+};
+
 // --- Animated Verse Card Component ---
-const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string) => void }> = ({ ayah, index, onRootClick }) => {
+const VerseCard: React.FC<{
+  ayah: any;
+  index: number;
+  onRootClick: (root: string) => void;
+  mainRoot: string;
+  subSearch: string;
+}> = ({ ayah, index, onRootClick, mainRoot, subSearch }) => {
   const [isExpanded, setIsExpanded] = React.useState(false);
+
+  // Derive Highlight Lists
+  const mainTokens = React.useMemo(() =>
+    ayah.tokens
+      .filter((t: any) => t.root === mainRoot)
+      .map((t: any) => t.token_uthmani || t.token),
+    [ayah.tokens, mainRoot]);
+
+  const secondaryTokens = React.useMemo(() => {
+    if (!subSearch) return [];
+    // If subSearch is exactly a root in this ayah
+    return ayah.tokens
+      .filter((t: any) => t.root === subSearch && t.root !== mainRoot)
+      .map((t: any) => t.token_uthmani || t.token);
+  }, [ayah.tokens, subSearch, mainRoot]);
+
+  // Combined keywords for logic (not used for display directly)
+  const hasHighlights = mainTokens.length > 0 || secondaryTokens.length > 0;
 
   return (
     <motion.div
@@ -33,8 +117,13 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
 
       {/* CLICKABLE HEADER AREA */}
       <div
+        role="button"
+        aria-expanded={isExpanded}
+        aria-label={`عرض تفاصيل الآية ${ayah.surahName} ${ayah.ayahNo}`}
+        tabIndex={0}
         onClick={() => setIsExpanded(!isExpanded)}
-        className="cursor-pointer p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 relative z-10"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setIsExpanded(!isExpanded); } }}
+        className="cursor-pointer p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 relative z-10 focus:outline-none focus:ring-2 focus:ring-primary/50 rounded-xl"
       >
         <div className="flex items-center gap-4 flex-1">
           {/* Number Badge */}
@@ -83,6 +172,7 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
             }}
             className="p-2 rounded-full hover:bg-secondary/80 text-muted-foreground transition-colors z-20"
             title="نسخ الآية"
+            aria-label="نسخ الآية"
           >
             <Copy className="w-3.5 h-3.5" />
           </button>
@@ -97,7 +187,12 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
         <div className="relative">
           <div className="max-h-[130px] overflow-y-auto custom-scrollbar pl-2 pr-2 py-1 hover:bg-muted/5 rounded-lg transition-colors">
             <p className="text-right text-lg md:text-xl leading-[2.4] dir-rtl text-foreground font-quran drop-shadow-sm select-text" dir="rtl">
-              {ayah.text}
+              <HighlightableText
+                text={ayah.text}
+                mainWords={mainTokens}
+                secondaryWords={secondaryTokens}
+                subSearch={subSearch}
+              />
             </p>
           </div>
         </div>
@@ -123,12 +218,22 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
                       الكلمات المطابقة
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      {ayah.tokens.map((token: any, idx: number) => (
-                        <div key={idx} className="flex flex-col items-center bg-background px-3 py-1.5 rounded-md border border-border/80 shadow-sm relative min-w-[40px]">
-                          <span className="text-sm font-bold text-foreground font-quran leading-tight">{token.token_uthmani || token.token}</span>
-                          <span className="text-[9px] text-muted-foreground/90 uppercase tracking-wide">{token.root}</span>
-                        </div>
-                      ))}
+                      {ayah.tokens.map((token: any, idx: number) => {
+                        const isMain = token.root === mainRoot;
+                        const isSecondary = token.root === subSearch;
+                        return (
+                          <div key={idx} className={`flex flex-col items-center px-3 py-1.5 rounded-md border shadow-sm relative min-w-[40px] ${isMain ? 'bg-primary/10 border-primary/30' :
+                            isSecondary ? 'bg-amber-100 border-amber-300 dark:bg-amber-900/30' :
+                              'bg-background border-border/80'
+                            }`}>
+                            <span className={`text-sm font-bold font-quran leading-tight ${isMain ? 'text-primary' :
+                              isSecondary ? 'text-amber-700 dark:text-amber-400' :
+                                'text-foreground'
+                              }`}>{token.token_uthmani || token.token}</span>
+                            <span className="text-[9px] text-muted-foreground/90 uppercase tracking-wide">{token.root}</span>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -141,15 +246,21 @@ const VerseCard: React.FC<{ ayah: any; index: number; onRootClick: (root: string
                       جذور أخرى
                     </div>
                     <div className="flex flex-wrap gap-1.5">
-                      {ayah.otherRoots.filter((r: string) => normalizeArabic(r).length >= 3).map((root: string, idx: number) => (
-                        <span
-                          key={idx}
-                          onClick={(e) => { e.stopPropagation(); onRootClick(root); }}
-                          className="text-xs font-medium text-muted-foreground bg-background px-2 py-1 rounded-md border border-border/50 hover:border-primary/50 hover:text-primary cursor-pointer transition-all hover:shadow-sm"
-                        >
-                          {root}
-                        </span>
-                      ))}
+                      {ayah.otherRoots.filter((r: string) => normalizeArabic(r).length >= 3).map((root: string, idx: number) => {
+                        const isSelected = root === subSearch;
+                        return (
+                          <span
+                            key={idx}
+                            onClick={(e) => { e.stopPropagation(); onRootClick(root); }}
+                            className={`text-xs font-medium px-2 py-1 rounded-md border cursor-pointer transition-all hover:shadow-sm ${isSelected
+                              ? 'bg-amber-100 text-amber-700 border-amber-300 dark:bg-amber-900/30 dark:text-amber-400'
+                              : 'bg-background text-muted-foreground border-border/50 hover:border-primary/50 hover:text-primary'
+                              }`}
+                          >
+                            {root}
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
@@ -347,6 +458,7 @@ export const Results: React.FC = () => {
                     }}
                     className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                     title="نسخ النتائج"
+                    aria-label="نسخ جميع النتائج للحافظة"
                   >
                     <Copy className="w-4 h-4" />
                   </button>
@@ -370,6 +482,7 @@ export const Results: React.FC = () => {
                     }}
                     className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-xl transition-colors"
                     title="تحميل ملف (CSV)"
+                    aria-label="تحميل النتائج كملف CSV"
                   >
                     <Download className="w-4 h-4" />
                   </button>
@@ -518,6 +631,8 @@ export const Results: React.FC = () => {
                 ayah={ayah}
                 index={index}
                 onRootClick={handleRootClick}
+                mainRoot={searchResults.root}
+                subSearch={subSearch}
               />
             ))}
           </AnimatePresence>

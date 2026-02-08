@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
                         <span>العودة للبحث</span>
                     </Button>
                     <div className="flex gap-2">
-                        <Button variant="ghost" size="icon" onClick={() => window.print()} title="طباعة">
+                        <Button variant="ghost" size="icon" onClick={() => window.print()} title="طباعة" aria-label="طباعة السجلات">
                             <Printer className="w-4 h-4" />
                         </Button>
                     </div>
