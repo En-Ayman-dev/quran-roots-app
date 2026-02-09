@@ -3,14 +3,14 @@ import { useQuran } from '../contexts/QuranContext';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { ArrowRight, ArrowLeft, Printer, TrendingUp, BookOpen, Layers, Activity, Fingerprint, Star, Share2, Clock, MapPin, ListFilter } from 'lucide-react';
+import { ArrowRight, Printer, TrendingUp, BookOpen, Layers, Activity, Fingerprint, Star, Share2, Clock, MapPin, ListFilter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { RevelationTimeline, EraDistribution, NetworkGraph, WordFormsList, RelationshipMatrix } from '../components/charts/DashboardCharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
-
-// --- Custom Components ---
-
 import { ScrollToTop } from '../components/ui/ScrollToTop';
+import { PageContainer } from '../components/ui/PageContainer'; // استيراد المكون الموحد
+
+// --- Custom Local Components (Preserved for specific dashboard needs) ---
 
 const SurahHeatmap = ({ surahData, onClick }: { surahData: { [key: string]: number }, onClick?: (surah: string) => void }) => {
     const entries = Object.entries(surahData);
@@ -81,27 +81,26 @@ const Dashboard: React.FC = () => {
     const [_, setLocation] = useLocation();
     const [timelineSort, setTimelineSort] = React.useState<'quran' | 'revelation'>('quran');
 
-    // Redirect if no data (e.g. refresh)
+    // Redirect logic handled via effect, but PageContainer handles display
     React.useEffect(() => {
         if (!searchResults || !statistics) {
             setLocation('/');
         }
     }, [searchResults, statistics, setLocation]);
 
-    if (!searchResults || !statistics) {
-        return null;
-    }
-
     // --- Derived Data ---
     const topSurahs = useMemo(() => {
+        if (!statistics) return [];
         return Object.entries(statistics.surahDistribution)
             .sort(([, a], [, b]) => b - a)
             .slice(0, 8)
             .map(([name, count]) => ({ label: `سورة ${name}`, value: count }));
-    }, [statistics.surahDistribution]);
+    }, [statistics]);
 
     // Deep Insights Calculation
     const { longestAyah, shortestAyah, centerOfGravityData } = useMemo(() => {
+        if (!searchResults) return { longestAyah: null, shortestAyah: null, centerOfGravityData: { maxFrequency: 0, candidates: [] } };
+
         const sorted = [...searchResults.ayahs].sort((a, b) => a.text.length - b.text.length);
 
         // Find Max Frequency
@@ -122,14 +121,14 @@ const Dashboard: React.FC = () => {
                 candidates: candidates
             }
         };
-    }, [searchResults.ayahs]);
+    }, [searchResults]);
 
     const [cgIndex, setCgIndex] = React.useState(0);
 
     // Reset index when root changes
     React.useEffect(() => {
         setCgIndex(0);
-    }, [searchResults.root]);
+    }, [searchResults?.root]);
 
     const currentCgAyah = centerOfGravityData.candidates[cgIndex];
     const isUniform = centerOfGravityData.maxFrequency <= 1;
@@ -149,8 +148,12 @@ const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="min-h-screen bg-background selection:bg-primary/20 pb-20 font-sans">
-
+        <PageContainer
+            isLoading={!searchResults || !statistics}
+            loadingMessage="جاري تحليل البيانات القرآنية..."
+            contain={false} // Disable default container to handle sticky header correctly
+            className="p-0 pt-0 pb-0" // Reset paddings for full control
+        >
             {/* Navigation Header */}
             <header className="sticky top-0 z-50 w-full backdrop-blur-xl bg-background/50 border-b border-white/5">
                 <div className="container flex h-16 items-center justify-between">
@@ -166,9 +169,7 @@ const Dashboard: React.FC = () => {
                 </div>
             </header>
 
-            <main className="container pt-8 animate-in fade-in duration-700 space-y-12">
-
-
+            <main className="container pt-8 animate-in fade-in duration-700 space-y-12 pb-20">
 
                 {/* HERO SECTION */}
                 <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary/10 via-background to-secondary/10 border border-primary/5 p-8 md:p-12 text-center shadow-2xl shadow-primary/5">
@@ -180,10 +181,10 @@ const Dashboard: React.FC = () => {
                             تحليل شامل للجذر
                         </div>
                         <h1 className="text-6xl md:text-8xl font-bold text-primary font-serif mb-4 drop-shadow-sm tracking-tighter">
-                            {searchResults.root}
+                            {searchResults!.root}
                         </h1>
                         <p className="text-xl text-muted-foreground max-w-lg mx-auto leading-relaxed">
-                            استكشاف الرحلة القرآنية لهذا الجذر عبر {statistics.totalOccurrences} موضعاً في {statistics.uniqueSurahs} سورة
+                            استكشاف الرحلة القرآنية لهذا الجذر عبر {statistics!.totalOccurrences} موضعاً في {statistics!.uniqueSurahs} سورة
                         </p>
                     </motion.div>
                 </section>
@@ -191,10 +192,10 @@ const Dashboard: React.FC = () => {
                 {/* SECTION 1: Crystal KPI Grid */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
                     {[
-                        { label: "إجمالي المواضع", value: statistics.totalOccurrences, icon: Layers, bg: "bg-blue-500/5", text: "text-blue-500" },
-                        { label: "عدد الآيات", value: statistics.totalAyahs, icon: BookOpen, bg: "bg-emerald-500/5", text: "text-emerald-500" },
-                        { label: "عدد السور", value: statistics.uniqueSurahs, icon: Fingerprint, bg: "bg-amber-500/5", text: "text-amber-500" },
-                        { label: "المتوسط / آية", value: statistics.averageOccurrencesPerAyah, icon: TrendingUp, bg: "bg-purple-500/5", text: "text-purple-500" },
+                        { label: "إجمالي المواضع", value: statistics!.totalOccurrences, icon: Layers, bg: "bg-blue-500/5", text: "text-blue-500" },
+                        { label: "عدد الآيات", value: statistics!.totalAyahs, icon: BookOpen, bg: "bg-emerald-500/5", text: "text-emerald-500" },
+                        { label: "عدد السور", value: statistics!.uniqueSurahs, icon: Fingerprint, bg: "bg-amber-500/5", text: "text-amber-500" },
+                        { label: "المتوسط / آية", value: statistics!.averageOccurrencesPerAyah, icon: TrendingUp, bg: "bg-purple-500/5", text: "text-purple-500" },
                     ].map((stat, i) => (
                         <motion.div
                             key={i}
@@ -312,7 +313,7 @@ const Dashboard: React.FC = () => {
                 )}
 
                 {/* NEW: Chronology & Evolution Section */}
-                {statistics.timeline && statistics.era && (
+                {statistics!.timeline && statistics!.era && (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <Card className="lg:col-span-2 border-primary/10 bg-card/40 backdrop-blur">
                             <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -338,7 +339,7 @@ const Dashboard: React.FC = () => {
                             </CardHeader>
                             <CardContent>
                                 <RevelationTimeline
-                                    data={[...(statistics.timeline || [])].sort((a, b) => {
+                                    data={[...(statistics!.timeline || [])].sort((a, b) => {
                                         if (timelineSort === 'quran') {
                                             return (a.surahNo || 0) - (b.surahNo || 0);
                                         }
@@ -359,7 +360,7 @@ const Dashboard: React.FC = () => {
                             </CardHeader>
                             <CardContent>
                                 <EraDistribution
-                                    data={statistics.era}
+                                    data={statistics!.era}
                                     onClick={(era) => handleNavigation('era', era)}
                                 />
                             </CardContent>
@@ -374,14 +375,14 @@ const Dashboard: React.FC = () => {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
                                 <ListFilter className="w-5 h-5 text-primary" />
-                                المشتقات اللفظية ({statistics.forms ? statistics.forms.length : 0})
+                                المشتقات اللفظية ({statistics!.forms ? statistics!.forms.length : 0})
                             </CardTitle>
                             <CardDescription>أشكال الكلمات الأكثر استخداماً لهذا الجذر</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {statistics.forms ? (
+                            {statistics!.forms ? (
                                 <WordFormsList
-                                    forms={statistics.forms}
+                                    forms={statistics!.forms}
                                     onClick={(form) => handleNavigation('form', form)}
                                 />
                             ) : (
@@ -400,12 +401,12 @@ const Dashboard: React.FC = () => {
                             <CardDescription>الجذور الأخرى التي تظهر بكثرة في نفس الآيات</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {statistics.network ? (
+                            {statistics!.network ? (
                                 <NetworkGraph
-                                    nodes={statistics.network.nodes}
-                                    links={statistics.network.links}
+                                    nodes={statistics!.network.nodes}
+                                    links={statistics!.network.links}
                                     onClick={(root) => {
-                                        if (root !== statistics.network.nodes[0].id) {
+                                        if (root !== statistics!.network.nodes[0].id) {
                                             handleNavigation('compare', root);
                                         }
                                     }}
@@ -418,7 +419,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* VISUALIZATION: Relationship Matrix */}
-                {statistics.matrix && statistics.matrix.length > 0 && (
+                {statistics!.matrix && statistics!.matrix.length > 0 && (
                     <Card className="border-primary/10 bg-card/40 backdrop-blur">
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2">
@@ -431,25 +432,11 @@ const Dashboard: React.FC = () => {
                         </CardHeader>
                         <CardContent>
                             <RelationshipMatrix
-                                data={statistics.matrix}
+                                data={statistics!.matrix}
                                 onClick={(rootA, rootB) => {
-                                    // Navigate to a comparison view or special filter
-                                    // Currently we support compare/:otherRoot (root vs other)
-                                    // Ideally, we'd support /details/:root/compare-pair/:rootA/:rootB
-                                    // But given our route structure /details/:root/compare/:value
-                                    // We can just filter for the OTHER root if one of them is the main root.
-                                    // If neither is the main root, it's a bit tricky with current DetailView.
-
-                                    // Improvement: Check if one is the main root.
-                                    if (rootA === searchResults.root) handleNavigation('compare', rootB);
-                                    else if (rootB === searchResults.root) handleNavigation('compare', rootA);
+                                    if (rootA === searchResults!.root) handleNavigation('compare', rootB);
+                                    else if (rootB === searchResults!.root) handleNavigation('compare', rootA);
                                     else {
-                                        // For now, maybe just show one of them or warn? 
-                                        // Or we pass a special format "rootA+rootB" and handle in DetailView?
-                                        // Let's keep it simple: Navigate to compare with root B (assuming context is root A... wait context is always main root).
-                                        // If user clicks intersection of Jannah and Anhar (neither is main root 'Rahma'), 
-                                        // we can't easily show just those 2 without context update.
-                                        // Fallback: Just trigger standard compare with the 2nd root.
                                         handleNavigation('compare', rootB);
                                     }
                                 }}
@@ -470,7 +457,7 @@ const Dashboard: React.FC = () => {
                         </CardHeader>
                         <CardContent className="px-0">
                             <SurahHeatmap
-                                surahData={statistics.surahDistribution}
+                                surahData={statistics!.surahDistribution}
                                 onClick={(surah) => handleNavigation('surah', surah)}
                             />
                         </CardContent>
@@ -493,35 +480,37 @@ const Dashboard: React.FC = () => {
                         </Card>
                     </div>
 
-                    <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="bg-secondary/20 rounded-2xl p-6 border border-primary/5">
-                            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-primary">
-                                <Star className="w-4 h-4" /> أطول آية ذكراً للجذر
+                    {longestAyah && shortestAyah && (
+                        <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="bg-secondary/20 rounded-2xl p-6 border border-primary/5">
+                                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-primary">
+                                    <Star className="w-4 h-4" /> أطول آية ذكراً للجذر
+                                </div>
+                                <div className="text-muted-foreground text-sm line-clamp-4 leading-relaxed font-quran dir-rtl">
+                                    "{longestAyah.text}"
+                                </div>
+                                <div className="mt-3 text-xs text-primary/60 font-medium">
+                                    سورة {longestAyah.surahName} : آية {longestAyah.ayahNo}
+                                </div>
                             </div>
-                            <div className="text-muted-foreground text-sm line-clamp-4 leading-relaxed font-quran dir-rtl">
-                                "{longestAyah.text}"
-                            </div>
-                            <div className="mt-3 text-xs text-primary/60 font-medium">
-                                سورة {longestAyah.surahName} : آية {longestAyah.ayahNo}
+                            <div className="bg-secondary/20 rounded-2xl p-6 border border-primary/5">
+                                <div className="flex items-center gap-2 mb-3 text-sm font-medium text-primary">
+                                    <Star className="w-4 h-4" /> أقصر آية ذكراً للجذر
+                                </div>
+                                <div className="text-muted-foreground text-sm line-clamp-4 leading-relaxed font-quran dir-rtl">
+                                    "{shortestAyah.text}"
+                                </div>
+                                <div className="mt-3 text-xs text-primary/60 font-medium">
+                                    سورة {shortestAyah.surahName} : آية {shortestAyah.ayahNo}
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-secondary/20 rounded-2xl p-6 border border-primary/5">
-                            <div className="flex items-center gap-2 mb-3 text-sm font-medium text-primary">
-                                <Star className="w-4 h-4" /> أقصر آية ذكراً للجذر
-                            </div>
-                            <div className="text-muted-foreground text-sm line-clamp-4 leading-relaxed font-quran dir-rtl">
-                                "{shortestAyah.text}"
-                            </div>
-                            <div className="mt-3 text-xs text-primary/60 font-medium">
-                                سورة {shortestAyah.surahName} : آية {shortestAyah.ayahNo}
-                            </div>
-                        </div>
-                    </div>
+                    )}
                 </div>
             </main>
 
             <ScrollToTop />
-        </div>
+        </PageContainer>
     );
 };
 
