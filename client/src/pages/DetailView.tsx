@@ -3,9 +3,12 @@ import { useRoute, useLocation, Link } from 'wouter';
 import { useQuran } from '../contexts/QuranContext';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { LayoutDashboard, Search, FileText, Component, Hash } from 'lucide-react';
+import { ArrowRight, LayoutDashboard, Search, FileText, Component, Hash, ArrowUpDown } from 'lucide-react';
 import { AyahList } from '../components/AyahList';
+import { getSurahType } from '../utils/surahHelpers';
 import { Card, CardContent } from '../components/ui/card';
+import { motion } from 'framer-motion';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select"
 import { QuranLoader } from '../components/ui/QuranLoader';
 import {
     Breadcrumb,
@@ -54,10 +57,7 @@ const DetailView: React.FC = () => {
         }
     }, [decodedRoot, searchResults, searchByRoot, setLocation]);
 
-    // Navigate to other roots when clicked inside cards
-    const handleRootClick = (rootToNav: string) => {
-        setLocation(`/details/${rootToNav}/root/search`);
-    };
+
 
     // 1. Base Filtering Logic (Drill-down)
     const { baseList, title, description } = useMemo(() => {
@@ -122,7 +122,7 @@ const DetailView: React.FC = () => {
         return { baseList: ayahs, title: pageTitle, description: pageDesc };
     }, [searchResults, params, type, decodedValue, decodedRoot]);
 
-    // 2. Second Layer Filtering (Search) - INSENSITIVE
+    // 2. Second Layer Filtering (Search) - NOW INSENSITIVE
     const filteredList = useMemo(() => {
         let list = baseList || [];
 
@@ -153,6 +153,7 @@ const DetailView: React.FC = () => {
                 });
             }
         }
+        // default: Keep original order (Ayah order)
 
         return list;
     }, [baseList, searchQuery, sortBy, focusAyahId]);
@@ -177,6 +178,15 @@ const DetailView: React.FC = () => {
         ];
     }, [filteredList]);
 
+
+    const handleBack = () => {
+        // If history is available, go back. Otherwise dashboard.
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            setLocation('/dashboard');
+        }
+    };
 
     if (loading || (decodedRoot && (!searchResults || searchResults.root !== decodedRoot))) {
         return (
@@ -284,7 +294,6 @@ const DetailView: React.FC = () => {
                     ayahs={paginatedList}
                     highlightQuery={searchQuery || (type === 'form' ? decodedValue : undefined)}
                     focusAyahId={focusAyahId}
-                    onRootClick={handleRootClick}
                 />
 
                 {/* Pagination Controls */}

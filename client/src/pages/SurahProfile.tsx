@@ -3,7 +3,7 @@ import { apiClient } from '../lib/apiClient';
 import { useLocation, useRoute, Link } from 'wouter';
 import { useQuran } from '../contexts/QuranContext';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { BookOpen, Sparkles, Anchor, Eye, Search, LayoutDashboard, AlertCircle } from 'lucide-react';
+import { ArrowRight, BookOpen, Sparkles, Anchor, Activity, Eye, ArrowUpRight, Search, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QuranLoader } from '@/components/ui/QuranLoader';
@@ -19,7 +19,7 @@ import {
 import { NetworkError as NetworkErrorPage } from '@/components/errors/NetworkError';
 import { ServerError as ServerErrorPage } from '@/components/errors/ServerError';
 import { ErrorLayout } from '@/components/errors/ErrorLayout';
-import { AppError } from '../lib/errors';
+import { AppError, NetworkError } from '../lib/errors';
 import { ScrollToTop } from '@/components/ui/ScrollToTop';
 
 interface Ayah {
@@ -39,82 +39,15 @@ interface SurahData {
     };
 }
 
-// --- Local Component: SurahAyahView ---
-// تم فصله لتحسين القراءة مع الحفاظ على التصميم الأصلي بدقة
-const SurahAyahView: React.FC<{
-    ayah: Ayah;
-    roots: { root: string; ayah_id: string; count: number }[];
-    surahNumber: number;
-    isReadingMode: boolean;
-    onRootClick: (root: string) => void;
-    index: number;
-    isUnique: (root: string) => boolean;
-}> = ({ ayah, roots, surahNumber, isReadingMode, onRootClick, index, isUnique }) => {
-
-    const ayahRoots = roots.filter(r => r.ayah_id === `${surahNumber}:${ayah.ayah_no}`);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.5, delay: index * 0.05 }}
-        >
-            <div className={`relative bg-card/40 backdrop-blur-sm border ${isReadingMode
-                    ? 'border-transparent p-8 md:p-12 shadow-none' // Reading Mode Styles
-                    : 'border-border p-8 rounded-[2rem] hover:border-primary/30 hover:shadow-xl hover:bg-card/60' // Analysis Mode Styles
-                } transition-all duration-300 group`}
-            >
-                {/* Ayah Number Badge */}
-                <div className="absolute top-6 start-6 opacity-30 group-hover:opacity-100 transition-opacity">
-                    <div className="w-8 h-8 flex items-center justify-center rounded-full border border-primary/20 text-primary text-xs font-bold font-mono bg-primary/5">
-                        {ayah.ayah_no}
-                    </div>
-                </div>
-
-                {/* Text - Responsive Typography matching Original */}
-                <p className={`text-center font-quran leading-[2.2] text-foreground ${isReadingMode ? 'text-4xl md:text-5xl' : 'text-3xl md:text-4xl'
-                    }`} dir="rtl">
-                    {ayah.text_uthmani}
-                </p>
-
-                {/* Analysis Toolbar (Hidden in Reading Mode) */}
-                {!isReadingMode && (
-                    <div className="mt-10 pt-6 border-t border-border/50">
-                        <div className="flex flex-wrap items-center justify-center gap-2">
-                            {ayahRoots.filter(r => r.root.replace(/[\u064B-\u065F\u0670]/g, "").length >= 3).map((r, i) => {
-                                const unique = isUnique(r.root);
-                                return (
-                                    <button
-                                        key={i}
-                                        onClick={() => onRootClick(r.root)}
-                                        className={`
-                                            px-3 py-1 rounded-full text-xs font-bold transition-all border
-                                            ${unique
-                                                ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
-                                                : 'bg-secondary/50 text-muted-foreground border-transparent hover:bg-primary/10 hover:text-primary hover:border-primary/20'
-                                            }
-                                        `}
-                                    >
-                                        {r.root}
-                                        {unique && <Sparkles className="inline-block w-3 h-3 mr-1 mb-0.5" />}
-                                    </button>
-                                )
-                            })}
-                        </div>
-                    </div>
-                )}
-            </div>
-        </motion.div>
-    );
-};
-
 const SurahProfile: React.FC = () => {
     const [, params] = useRoute('/surah/:id');
     const [data, setData] = useState<SurahData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<AppError | null>(null);
     const [, setLocation] = useLocation();
+
+    // Context for Search
+    const { searchByRoot } = useQuran();
 
     // Interaction State
     const [isReadingMode, setIsReadingMode] = useState(false);
@@ -133,6 +66,11 @@ const SurahProfile: React.FC = () => {
         });
     }, [scrollY]);
 
+    // Scroll to top handler
+    const scrollToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     const surahId = params?.id;
 
     useEffect(() => {
@@ -142,6 +80,7 @@ const SurahProfile: React.FC = () => {
             setLoading(true);
             setError(null);
             try {
+                // apiClient base URL already includes '/api'
                 const result = await apiClient.get<{ success: boolean; data: SurahData }>(`surahs/${surahId}`);
                 if (result.success) {
                     setData(result.data);
@@ -163,12 +102,20 @@ const SurahProfile: React.FC = () => {
         fetchSurah();
     }, [surahId]);
 
+    const handleBack = () => {
+        if (window.history.length > 1) {
+            window.history.back();
+        } else {
+            setLocation('/dashboard');
+        }
+    };
+
     const handleRootClick = (root: string) => {
         setLocation(`/details/${root}/root/search`);
     };
 
     // Helper to check if a root is unique to this surah
-    const isUnique = (root: string) => data?.stats.uniqueRoots.includes(root) || false;
+    const isUnique = (root: string) => data?.stats.uniqueRoots.includes(root);
 
     if (loading) {
         return (
@@ -200,7 +147,8 @@ const SurahProfile: React.FC = () => {
     return (
         <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden pt-16">
 
-            {/* 0. STICKY HEADER */}
+
+            {/* 0. STICKY HEADER (Minified Hero) */}
             <AnimatePresence>
                 {isScrolled && (
                     <motion.header
@@ -263,10 +211,10 @@ const SurahProfile: React.FC = () => {
                 style={{ opacity: heroOpacity, y: heroY }}
                 className={`relative flex flex-col items-center justify-center transition-all duration-1000 -mt-16 ${isReadingMode ? 'h-[40vh]' : 'h-[75vh]'}`}
             >
-                {/* Background Atmosphere */}
+                {/* Background Atmosphere - Light & Airy */}
                 <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background z-0"></div>
 
-                {/* Orbital Rings Decoration */}
+                {/* Orbital Rings Decoration - Subtle */}
                 <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-40">
                     <div className="w-[800px] h-[800px] border border-primary/10 rounded-full animate-[spin_60s_linear_infinite]" />
                     <div className="w-[600px] h-[600px] border border-primary/10 rounded-full animate-[spin_40s_linear_infinite_reverse]" />
@@ -328,7 +276,7 @@ const SurahProfile: React.FC = () => {
                 className="relative z-20 container mx-auto px-4 pb-20 -mt-20 max-w-7xl"
             >
 
-                {/* --- ANALYTICS DASHBOARD --- */}
+                {/* --- ANALYTICS DASHBOARD (Hidden in Reading Mode) --- */}
                 <AnimatePresence>
                     {!isReadingMode && (
                         <motion.div
@@ -426,18 +374,61 @@ const SurahProfile: React.FC = () => {
 
                 {/* --- AYAH STREAM --- */}
                 <div className={`mt-12 space-y-8 mx-auto transition-all duration-700 ${isReadingMode ? 'max-w-3xl' : 'max-w-5xl'}`}>
-                    {data.ayahs.map((ayah, idx) => (
-                        <SurahAyahView
-                            key={ayah.ayah_no}
-                            ayah={ayah}
-                            roots={data.roots}
-                            surahNumber={data.number}
-                            isReadingMode={isReadingMode}
-                            onRootClick={handleRootClick}
-                            index={idx}
-                            isUnique={isUnique}
-                        />
-                    ))}
+                    {data.ayahs.map((ayah, idx) => {
+                        const ayahRoots = data.roots.filter(r => r.ayah_id === `${data.number}:${ayah.ayah_no}`);
+
+                        return (
+                            <motion.div
+                                key={ayah.ayah_no}
+                                initial={{ opacity: 0, y: 30 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true, margin: "-50px" }}
+                                transition={{ duration: 0.5, delay: idx * 0.05 }}
+                            >
+                                <div className={`relative bg-card/40 backdrop-blur-sm border ${isReadingMode ? 'border-transparent p-8 md:p-12 shadow-none' : 'border-border p-8 rounded-[2rem] hover:border-primary/30 hover:shadow-xl hover:bg-card/60'} transition-all duration-300 group`}>
+
+                                    {/* Ayah Number Badge */}
+                                    <div className="absolute top-6 start-6 opacity-30 group-hover:opacity-100 transition-opacity">
+                                        <div className="w-8 h-8 flex items-center justify-center rounded-full border border-primary/20 text-primary text-xs font-bold font-mono bg-primary/5">
+                                            {ayah.ayah_no}
+                                        </div>
+                                    </div>
+
+                                    {/* Text */}
+                                    <p className={`text-center font-quran leading-[2.2] text-foreground ${isReadingMode ? 'text-4xl md:text-5xl' : 'text-3xl md:text-4xl'}`} dir="rtl">
+                                        {ayah.text_uthmani}
+                                    </p>
+
+                                    {/* Analysis Toolbar (Hidden in Reading Mode) */}
+                                    {!isReadingMode && (
+                                        <div className="mt-10 pt-6 border-t border-border/50">
+                                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                                {ayahRoots.filter(r => r.root.replace(/[\u064B-\u065F\u0670]/g, "").length >= 3).map((r, i) => {
+                                                    const unique = isUnique(r.root);
+                                                    return (
+                                                        <button
+                                                            key={i}
+                                                            onClick={() => handleRootClick(r.root)}
+                                                            className={`
+                                                                px-3 py-1 rounded-full text-xs font-bold transition-all border
+                                                                ${unique
+                                                                    ? 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100'
+                                                                    : 'bg-secondary/50 text-muted-foreground border-transparent hover:bg-primary/10 hover:text-primary hover:border-primary/20'
+                                                                }
+                                                            `}
+                                                        >
+                                                            {r.root}
+                                                            {unique && <Sparkles className="inline-block w-3 h-3 mr-1 mb-0.5" />}
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </motion.div>
+                        )
+                    })}
                 </div>
             </motion.div>
 

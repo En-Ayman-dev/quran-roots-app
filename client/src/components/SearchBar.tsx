@@ -6,10 +6,9 @@ import { Search } from 'lucide-react';
 
 interface SearchBarProps {
   size?: 'small' | 'medium' | 'large';
-  onInputChanged?: (value: string) => void;
 }
 
-export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', onInputChanged }) => {
+export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large' }) => {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -24,7 +23,6 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', onInputCha
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setInputValue(val);
-    if (onInputChanged) onInputChanged(val);
 
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -77,14 +75,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({ size = 'large', onInputCha
 
   const handleSuggestionClick = async (suggestion: string) => {
     setInputValue(suggestion);
-    if (onInputChanged) onInputChanged(suggestion);
     setShowSuggestions(false);
-
-    // Slight delay to allow UI to update to loading state with the new term
-    setTimeout(async () => {
-      lastQueryRef.current = '__submitted__';
-      await searchByRoot(suggestion);
-    }, 0);
+    // Invalidate pending suggestions
+    lastQueryRef.current = '__submitted__';
+    await searchByRoot(suggestion);
   };
 
   const sizeClasses = {
