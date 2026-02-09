@@ -3,7 +3,7 @@ import { apiClient } from '../lib/apiClient';
 import { useLocation, useRoute, Link } from 'wouter';
 import { useQuran } from '../contexts/QuranContext';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { ArrowRight, BookOpen, Sparkles, Anchor, Activity, Eye, ArrowUpRight, Search, LayoutDashboard } from 'lucide-react';
+import { ArrowRight, BookOpen, Sparkles, Anchor, Activity, Eye, ArrowUpRight, Search, LayoutDashboard, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { QuranLoader } from '@/components/ui/QuranLoader';
@@ -15,6 +15,12 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+
+import { NetworkError as NetworkErrorPage } from '@/components/errors/NetworkError';
+import { ServerError as ServerErrorPage } from '@/components/errors/ServerError';
+import { ErrorLayout } from '@/components/errors/ErrorLayout';
+import { AppError, NetworkError } from '../lib/errors';
+import { ScrollToTop } from '@/components/ui/ScrollToTop';
 
 interface Ayah {
     surah_no: number;
@@ -37,7 +43,7 @@ const SurahProfile: React.FC = () => {
     const [, params] = useRoute('/surah/:id');
     const [data, setData] = useState<SurahData | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<AppError | null>(null);
     const [, setLocation] = useLocation();
 
     // Context for Search
@@ -72,17 +78,22 @@ const SurahProfile: React.FC = () => {
 
         const fetchSurah = async () => {
             setLoading(true);
+            setError(null);
             try {
                 // apiClient base URL already includes '/api'
                 const result = await apiClient.get<{ success: boolean; data: SurahData }>(`surahs/${surahId}`);
                 if (result.success) {
                     setData(result.data);
                 } else {
-                    setError('Failed to load Surah details');
+                    throw new AppError('Failed to load Surah details');
                 }
             } catch (err) {
                 console.error(err);
-                setError('Connection Error');
+                if (err instanceof AppError) {
+                    setError(err);
+                } else {
+                    setError(new AppError('Connection Error'));
+                }
             } finally {
                 setLoading(false);
             }
@@ -114,16 +125,28 @@ const SurahProfile: React.FC = () => {
         );
     }
 
-    if (!data || error) return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-4">
-            <Activity className="w-12 h-12 text-destructive mb-4 opacity-80" />
-            <h2 className="text-xl font-bold mb-2">تعذر تحميل البيانات</h2>
-            <Button onClick={handleBack} variant="outline" className="border-border hover:bg-secondary">عودة</Button>
-        </div>
-    );
+    if (error) {
+        if (error.name === 'NetworkError') {
+            return <NetworkErrorPage onRetry={() => window.location.reload()} />;
+        }
+        if (error.name === 'ServerError') {
+            return <ServerErrorPage error={error} onRetry={() => window.location.reload()} />;
+        }
+        return (
+            <ErrorLayout
+                title="تعذر تحميل البيانات"
+                description={error.message}
+                icon={<AlertCircle className="w-10 h-10 text-destructive" />}
+                action="retry"
+                onRetry={() => window.location.reload()}
+            />
+        );
+    }
+    if (!data) return null;
 
     return (
         <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 overflow-x-hidden pt-16">
+
 
             {/* 0. STICKY HEADER (Minified Hero) */}
             <AnimatePresence>
@@ -410,21 +433,7 @@ const SurahProfile: React.FC = () => {
             </motion.div>
 
             {/* SCROLL TO TOP FAB */}
-            <AnimatePresence>
-                {isScrolled && (
-                    <motion.button
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={scrollToTop}
-                        className="fixed bottom-6 end-6 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-primary/50 transition-all shadow-primary/20 border border-primary/20"
-                    >
-                        <ArrowUpRight className="w-6 h-6 -rotate-45" />
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            <ScrollToTop />
         </div>
     );
 };

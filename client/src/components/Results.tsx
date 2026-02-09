@@ -4,7 +4,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, BookOpen, ChevronDown, ChevronUp, Search, X, Copy, Check, Download, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { NetworkError } from './errors/NetworkError';
+import { ServerError } from './errors/ServerError';
+import { AccessDenied } from './errors/AccessDenied';
+import { ErrorLayout } from './errors/ErrorLayout';
+import { SearchX, AlertOctagon } from 'lucide-react';
 import { QuranLoader } from './ui/QuranLoader';
+import { EmptyState } from './errors/EmptyState';
+import { ScrollToTop } from './ui/ScrollToTop';
 
 // --- Utility: Remove Arabic Diacritics (Tashkeel) ---
 const normalizeArabic = (text: string) => {
@@ -281,7 +288,6 @@ export const Results: React.FC = () => {
   const [selectedSurah, setSelectedSurah] = React.useState<string>('all');
   const [selectedJuz, setSelectedJuz] = React.useState<string>('all');
   const [subSearch, setSubSearch] = React.useState<string>('');
-  const [showScrollTop, setShowScrollTop] = React.useState(false);
   const [selectedDerivative, setSelectedDerivative] = React.useState<string | null>(null);
 
   // --- DERIVED DATA (MEMOs) ---
@@ -318,12 +324,7 @@ export const Results: React.FC = () => {
 
 
   // --- EFFECTS ---
-  // Scroll detection
-  React.useEffect(() => {
-    const handleScroll = () => setShowScrollTop(window.scrollY > 400);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+
 
   // Reset pagination/filters when search results change
   React.useEffect(() => {
@@ -353,24 +354,26 @@ export const Results: React.FC = () => {
     );
   }
 
+  // ... inside component ...
+
   if (error) {
+    if (error.name === 'NetworkError') {
+      return <NetworkError onRetry={() => searchByRoot(searchResults?.root || '')} />;
+    }
+    if (error.name === 'ServerError') {
+      return <ServerError error={error} onRetry={() => searchByRoot(searchResults?.root || '')} />;
+    }
+    if (error.name === 'AuthenticationError') {
+      return <AccessDenied />;
+    }
     return (
-      <div className="max-w-xl mx-auto mt-12 animate-in slide-in-from-bottom-8 duration-500">
-        <Card className="border-destructive/30 bg-destructive/5 shadow-2xl overflow-hidden relative">
-          <div className="absolute top-0 right-0 w-2 h-full bg-destructive/60" />
-          <CardContent className="pt-8 pb-8 px-8">
-            <div className="flex gap-6 items-start">
-              <div className="p-4 bg-background rounded-2xl shadow-sm border border-destructive/10">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-              </div>
-              <div>
-                <h3 className="font-bold text-xl text-destructive mb-2">عذراً، حدث خطأ</h3>
-                <p className="text-muted-foreground leading-relaxed">{error}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      <ErrorLayout
+        title="حدث خطأ"
+        description={error.message || "حدث خطأ غير متوقع أثناء البحث"}
+        icon={<AlertOctagon className="w-10 h-10 text-destructive" />}
+        action="retry"
+        onRetry={() => searchByRoot(searchResults?.root || '')}
+      />
     );
   }
 
@@ -614,15 +617,10 @@ export const Results: React.FC = () => {
       {/* Results List */}
       <div className="grid gap-4">
         {visibleAyahs.length === 0 ? (
-          <Card className="border-dashed py-16 text-center bg-muted/20">
-            <div className="text-muted-foreground">لا توجد نتائج تطابق الفلاتر المختارة</div>
-            <button
-              onClick={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch(''); setSelectedDerivative(null); }}
-              className="mt-4 text-primary font-medium hover:underline"
-            >
-              إعادة ضبط القلاتر
-            </button>
-          </Card>
+          <EmptyState
+            message="لا توجد نتائج تطابق الفلاتر المختارة"
+            onClear={() => { setSelectedSurah('all'); setSelectedJuz('all'); setSubSearch(''); setSelectedDerivative(null); }}
+          />
         ) : (
           <AnimatePresence>
             {visibleAyahs.map((ayah, index) => (
@@ -672,15 +670,7 @@ export const Results: React.FC = () => {
       )}
 
       {/* Scroll to Top Button */}
-      {showScrollTop && (
-        <button
-          onClick={scrollToTop}
-          className="fixed bottom-8 end-8 z-50 p-3 bg-primary text-primary-foreground rounded-full shadow-xl hover:scale-110 active:scale-90 transition-all duration-300 animate-in fade-in slide-in-from-bottom-4"
-          aria-label="العودة للأعلى"
-        >
-          <div className="text-xl font-bold">↑</div>
-        </button>
-      )}
+      <ScrollToTop />
     </div>
   );
 };

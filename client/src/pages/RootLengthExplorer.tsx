@@ -2,13 +2,18 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { apiClient } from '../lib/apiClient';
 import { useRoute, useLocation } from 'wouter';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Layers, ArrowRight, Search, Database, Component, ArrowUpRight, Sparkles, Activity } from 'lucide-react';
+import { Layers, ArrowRight, Search, Database, Component, ArrowUpRight, Sparkles, Activity, AlertCircle } from 'lucide-react';
 import { useQuran } from '../contexts/QuranContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
 import { QuranLoader } from '../components/ui/QuranLoader';
+import { NetworkError as NetworkErrorPage } from '@/components/errors/NetworkError';
+import { ServerError as ServerErrorPage } from '@/components/errors/ServerError';
+import { ErrorLayout } from '@/components/errors/ErrorLayout';
+import { AppError, NetworkError } from '../lib/errors';
+import { ScrollToTop } from '@/components/ui/ScrollToTop';
 
 interface RootItem {
     root: string;
@@ -32,7 +37,7 @@ const RootLengthExplorer: React.FC = () => {
 
     const [data, setData] = useState<LengthStats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<AppError | null>(null);
     const [searchQuery, setSearchQuery] = useState('');
 
     // Pagination State
@@ -61,11 +66,15 @@ const RootLengthExplorer: React.FC = () => {
                 if (result.success) {
                     setData(result.data);
                 } else {
-                    throw new Error('Unknown error');
+                    throw new AppError('Unknown error');
                 }
             } catch (err) {
                 console.error(err);
-                setError('Failed to load roots data');
+                if (err instanceof AppError) {
+                    setError(err);
+                } else {
+                    setError(new AppError('Failed to load roots data'));
+                }
             } finally {
                 setLoading(false);
             }
@@ -130,19 +139,27 @@ const RootLengthExplorer: React.FC = () => {
         );
     }
 
-    if (error || !data) {
+    if (error) {
+        if (error.name === 'NetworkError') {
+            return <NetworkErrorPage onRetry={() => window.location.reload()} />;
+        }
+        if (error.name === 'ServerError') {
+            return <ServerErrorPage error={error} onRetry={() => window.location.reload()} />;
+        }
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background">
-                <div className="text-center p-8 bg-destructive/5 rounded-2xl border border-destructive/20 text-destructive shadow-lg">
-                    <Activity className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                    <p className="font-bold text-lg">{error || 'No data found'}</p>
-                    <Button variant="outline" onClick={() => setLocation('/dashboard')} className="mt-6 border-destructive/20 hover:bg-destructive/10">
-                        العودة للوحة التحكم
-                    </Button>
-                </div>
+            <div className="min-h-screen">
+                <ErrorLayout
+                    title="خطأ في جلب البيانات"
+                    description={error.message}
+                    icon={<AlertCircle className="w-10 h-10 text-destructive" />}
+                    action="retry"
+                    onRetry={() => window.location.reload()}
+                />
             </div>
         );
     }
+
+    if (!data) return null;
 
     return (
         <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 pb-20 font-sans">
@@ -300,21 +317,7 @@ const RootLengthExplorer: React.FC = () => {
             </div>
 
             {/* Scroll To Top FAB */}
-            <AnimatePresence>
-                {showScrollTop && (
-                    <motion.button
-                        initial={{ scale: 0, opacity: 0 }}
-                        animate={{ scale: 1, opacity: 1 }}
-                        exit={{ scale: 0, opacity: 0 }}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={scrollToTop}
-                        className="fixed bottom-8 end-8 z-50 p-4 bg-primary text-primary-foreground rounded-full shadow-lg hover:shadow-primary/50 transition-all shadow-primary/20 border border-primary/20"
-                    >
-                        <ArrowUpRight className="w-6 h-6 -rotate-45" />
-                    </motion.button>
-                )}
-            </AnimatePresence>
+            <ScrollToTop />
         </div>
     );
 };

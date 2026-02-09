@@ -48,7 +48,7 @@ export default function Home() {
 
           {/* Results Section */}
           <div className="mt-12">
-            {(searchResults || loading) ? (
+            {(searchResults || loading || useQuran().error) ? (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
                 <Results />
               </div>

@@ -4,7 +4,12 @@ import { useLocation } from 'wouter';
 import { useQuran } from '../../contexts/QuranContext';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { Activity, Book, Database, Layers, FileText, BarChart3, Fingerprint, Sparkles, Anchor } from 'lucide-react';
+import { Activity, Book, Database, Layers, FileText, BarChart3, Fingerprint, Sparkles, Anchor, AlertCircle } from 'lucide-react';
+import { NetworkError as NetworkErrorPage } from '@/components/errors/NetworkError';
+import { ServerError as ServerErrorPage } from '@/components/errors/ServerError';
+import { ErrorLayout } from '@/components/errors/ErrorLayout';
+import { AppError, NetworkError } from '../../lib/errors';
+import { ScrollToTop } from '@/components/ui/ScrollToTop';
 
 interface GlobalStats {
     totalAyahs: number;
@@ -22,7 +27,7 @@ interface GlobalStats {
 export const ProjectAnalytics: React.FC<{ onNavigate?: () => void }> = ({ onNavigate }) => {
     const [stats, setStats] = useState<GlobalStats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<AppError | null>(null);
 
     // Navigation Hooks
     const [, setLocation] = useLocation();
@@ -51,11 +56,15 @@ export const ProjectAnalytics: React.FC<{ onNavigate?: () => void }> = ({ onNavi
                 if (result.success) {
                     setStats(result.data);
                 } else {
-                    setError('Failed to load data');
+                    throw new AppError('Failed to load data');
                 }
             } catch (err) {
                 console.error(err);
-                setError('Could not connect to server');
+                if (err instanceof AppError) {
+                    setError(err);
+                } else {
+                    setError(new AppError('Could not connect to server'));
+                }
             } finally {
                 setLoading(false);
             }
@@ -72,15 +81,25 @@ export const ProjectAnalytics: React.FC<{ onNavigate?: () => void }> = ({ onNavi
         );
     }
 
-    if (error || !stats) {
+    if (error) {
+        if (error.name === 'NetworkError') {
+            return <NetworkErrorPage onRetry={() => window.location.reload()} />;
+        }
+        if (error.name === 'ServerError') {
+            return <ServerErrorPage error={error} onRetry={() => window.location.reload()} />;
+        }
         return (
-            <div className="text-center p-8 text-red-500 bg-red-500/10 rounded-xl border border-red-500/20">
-                <Activity className="w-8 h-8 mx-auto mb-2" />
-                <p>{error || 'No data available'}</p>
-                <p className="text-xs mt-2 text-muted-foreground">تأكد من تشغيل الخادم (Restart Server)</p>
-            </div>
+            <ErrorLayout
+                title="خطأ في البيانات"
+                description={error.message}
+                icon={<AlertCircle className="w-10 h-10 text-destructive" />}
+                action="retry"
+                onRetry={() => window.location.reload()}
+            />
         );
     }
+
+    if (!stats) return null;
 
     const kpis = [
         { label: 'إجمالي الجذور', value: stats.totalRoots, icon: Database, color: 'text-emerald-500', bg: 'bg-emerald-500/10' },
@@ -299,6 +318,7 @@ export const ProjectAnalytics: React.FC<{ onNavigate?: () => void }> = ({ onNavi
             <div className="text-center text-xs text-muted-foreground pt-8 border-t border-dashed border-border/50">
                 <p>بيانات حية من قاعدة بيانات الجذور القرآنية v2.0</p>
             </div>
+            <ScrollToTop />
         </div>
     );
 };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { apiClient } from '../lib/apiClient';
+import { AppError, NetworkError, ServerError, AuthenticationError, NotFoundError } from '../lib/errors';
 
 interface Token {
   pos: number;
@@ -52,7 +53,7 @@ interface QuranContextType {
   searchResults: SearchResult | null;
   statistics: Statistics | null;
   loading: boolean;
-  error: string | null;
+  error: AppError | null; // Changed to typed Error
   recentSearches: string[];
   searchByRoot: (root: string) => Promise<void>;
   suggestRoots: (query: string) => Promise<string[]>;
@@ -67,7 +68,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
   const [statistics, setStatistics] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<AppError | null>(null);
   const [recentSearches, setRecentSearches] = useState<string[]>(() => {
     const saved = localStorage.getItem('recentSearches');
     return saved ? JSON.parse(saved) : [];
@@ -134,7 +135,7 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const searchByRoot = useCallback(async (root: string) => {
     if (!root.trim()) {
-      setError('الرجاء إدخال جذر صحيح');
+      setError(new AppError('الرجاء إدخال جذر صحيح'));
       return;
     }
 
@@ -161,16 +162,18 @@ export const QuranProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       localStorage.setItem('recentSearches', JSON.stringify(updated));
     } catch (err) {
       console.error('Search error:', err);
-      const isNotFoundError = err instanceof Error && err.message.includes('404');
 
-      if (isNotFoundError) {
+      if (err instanceof NotFoundError) {
         setSearchResults({ root: root.trim(), ayahs: [], totalOccurrences: 0 });
         setStatistics(null);
         return;
       }
 
-      const errorMessage = err instanceof Error ? err.message : 'حدث خطأ في البحث';
-      setError(errorMessage);
+      if (err instanceof AppError) {
+        setError(err);
+      } else {
+        setError(new AppError(err instanceof Error ? err.message : 'حدث خطأ في البحث'));
+      }
     } finally {
       setLoading(false);
     }
@@ -219,3 +222,4 @@ export const useQuran = (): QuranContextType => {
   }
   return context;
 };
+

@@ -3,12 +3,14 @@ import { useQuran } from '../contexts/QuranContext';
 import { useLocation } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { ArrowRight, Printer, TrendingUp, BookOpen, Layers, Activity, Fingerprint, Star, Share2, Clock, MapPin, ListFilter } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Printer, TrendingUp, BookOpen, Layers, Activity, Fingerprint, Star, Share2, Clock, MapPin, ListFilter } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { RevelationTimeline, EraDistribution, NetworkGraph, WordFormsList, RelationshipMatrix } from '../components/charts/DashboardCharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
 
 // --- Custom Components ---
+
+import { ScrollToTop } from '../components/ui/ScrollToTop';
 
 const SurahHeatmap = ({ surahData, onClick }: { surahData: { [key: string]: number }, onClick?: (surah: string) => void }) => {
     const entries = Object.entries(surahData);
@@ -99,20 +101,38 @@ const Dashboard: React.FC = () => {
     }, [statistics.surahDistribution]);
 
     // Deep Insights Calculation
-    const { longestAyah, shortestAyah, centerOfGravity } = useMemo(() => {
+    const { longestAyah, shortestAyah, centerOfGravityData } = useMemo(() => {
         const sorted = [...searchResults.ayahs].sort((a, b) => a.text.length - b.text.length);
 
-        // Find Ayah with max occurrences
-        const maxAyah = searchResults.ayahs.reduce((prev, current) =>
-            (prev.rootCount > current.rootCount) ? prev : current
-            , searchResults.ayahs[0]);
+        // Find Max Frequency
+        let maxFreq = 0;
+        searchResults.ayahs.forEach(a => {
+            const count = Number(a.rootCount) || 0;
+            if (count > maxFreq) maxFreq = count;
+        });
+
+        // Find all candidates with max frequency
+        const candidates = searchResults.ayahs.filter(a => (Number(a.rootCount) || 0) === maxFreq);
 
         return {
             shortestAyah: sorted[0],
             longestAyah: sorted[sorted.length - 1],
-            centerOfGravity: maxAyah
+            centerOfGravityData: {
+                maxFrequency: maxFreq,
+                candidates: candidates
+            }
         };
     }, [searchResults.ayahs]);
+
+    const [cgIndex, setCgIndex] = React.useState(0);
+
+    // Reset index when root changes
+    React.useEffect(() => {
+        setCgIndex(0);
+    }, [searchResults.root]);
+
+    const currentCgAyah = centerOfGravityData.candidates[cgIndex];
+    const isUniform = centerOfGravityData.maxFrequency <= 1;
 
     // --- Navigation Handlers ---
     const handleNavigation = (type: string, value: string, focusAyahId?: number) => {
@@ -197,7 +217,7 @@ const Dashboard: React.FC = () => {
                 </div>
 
                 {/* VISUALIZATION: Center of Gravity (New Premium Feature) */}
-                {centerOfGravity && centerOfGravity.rootCount > 1 && (
+                {currentCgAyah && centerOfGravityData.maxFrequency > 1 && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -210,34 +230,78 @@ const Dashboard: React.FC = () => {
                                 <Activity className="w-8 h-8 md:w-10 md:h-10" />
                             </div>
 
-                            <div className="flex-1 text-center md:text-right space-y-4">
+                            <div className="flex-1 text-center md:text-right space-y-4 w-full">
                                 <div>
                                     <div className="text-amber-500 font-bold text-sm tracking-wider uppercase mb-1 flex items-center justify-center md:justify-start gap-2">
                                         <Star className="w-4 h-4 fill-amber-500" />
                                         مركز ثقل الجذر
+                                        {centerOfGravityData.candidates.length > 1 && (
+                                            <span className="text-xs bg-amber-500/20 px-2 py-0.5 rounded-full text-amber-600">
+                                                {cgIndex + 1} من {centerOfGravityData.candidates.length}
+                                            </span>
+                                        )}
                                     </div>
-                                    <h3 className="text-2xl md:text-3xl font-bold font-quran leading-loose md:leading-loose text-foreground">
-                                        "{centerOfGravity.text}"
-                                    </h3>
+
+                                    {isUniform && (
+                                        <div className="text-muted-foreground text-sm italic mb-2 border-r-2 border-amber-500/50 pr-3 mr-1 bg-amber-500/5 p-2 rounded">
+                                            ملاحظة: يتوزع هذا الجذر بشكل متساوٍ (أو نادر) في القرآن. نعرض هنا أول موضع كنموذج.
+                                        </div>
+                                    )}
+
+                                    <div className="relative min-h-[100px] flex items-center justify-center md:justify-start">
+                                        {/* Navigation Arrows */}
+                                        {centerOfGravityData.candidates.length > 1 && (
+                                            <>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute -right-8 md:-right-12 z-20 hover:bg-amber-500/10 hover:text-amber-600"
+                                                    onClick={() => setCgIndex(prev => (prev === 0 ? centerOfGravityData.candidates.length - 1 : prev - 1))}
+                                                >
+                                                    <ArrowRight className="w-6 h-6 rotate-180 text-amber-500/50 hover:text-amber-500" />
+                                                </Button>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="absolute -left-8 md:-left-12 z-20 hover:bg-amber-500/10 hover:text-amber-600"
+                                                    onClick={() => setCgIndex(prev => (prev === centerOfGravityData.candidates.length - 1 ? 0 : prev + 1))}
+                                                >
+                                                    <ArrowRight className="w-6 h-6 text-amber-500/50 hover:text-amber-500" />
+                                                </Button>
+                                            </>
+                                        )}
+
+                                        <motion.h3
+                                            key={currentCgAyah.id}
+                                            initial={{ opacity: 0, x: 20 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -20 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="text-xl md:text-2xl font-bold font-quran leading-loose md:leading-loose text-foreground w-full px-4 md:px-0"
+                                        >
+                                            "{currentCgAyah.text}"
+                                        </motion.h3>
+                                    </div>
                                 </div>
 
-                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground">
+                                <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-muted-foreground mt-4">
                                     <span className="px-3 py-1 rounded-full bg-secondary/30 border border-primary/5 shadow-sm">
-                                        سورة {centerOfGravity.surahName}
+                                        سورة {currentCgAyah.surahName}
                                     </span>
                                     <span className="px-3 py-1 rounded-full bg-secondary/30 border border-primary/5 shadow-sm">
-                                        الآية {centerOfGravity.ayahNo}
+                                        الآية {currentCgAyah.ayahNo}
                                     </span>
                                     <span className="px-3 py-1 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 font-bold shadow-sm">
-                                        {centerOfGravity.rootCount} تكرارات للجذر
+                                        {currentCgAyah.rootCount} تكرارات للجذر هنا
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="flex-shrink-0">
+                            <div className="flex-shrink-0 self-center md:self-end mt-4 md:mt-0">
                                 <Button
                                     className="bg-amber-500 hover:bg-amber-600 text-black font-bold shadow-lg shadow-amber-500/20 transition-all hover:scale-105 gap-2"
-                                    onClick={() => handleNavigation('surah', centerOfGravity.surahName, parseInt(centerOfGravity.id))}
+                                    onClick={() => handleNavigation('surah', currentCgAyah.surahName, parseInt(currentCgAyah.id))}
                                 >
                                     عرض السياق
                                     <ArrowRight className="w-4 h-4" />
@@ -455,6 +519,8 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </main>
+
+            <ScrollToTop />
         </div>
     );
 };

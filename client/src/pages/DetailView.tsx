@@ -18,6 +18,7 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
+import { ScrollToTop } from '../components/ui/ScrollToTop';
 
 // Helper to remove Tashkeel
 const removeTashkeel = (text: string) => {
@@ -331,6 +332,8 @@ const DetailView: React.FC = () => {
                 )}
 
             </main>
+
+            <ScrollToTop />
         </div>
     );
 };
